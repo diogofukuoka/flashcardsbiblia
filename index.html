@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flashcards Bíblicos</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root { --primary: #2c3e50; --accent: #2980b9; --success: #27ae60; --error: #c0392b; --bg: #f4f6f7; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        
+        h1, h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+        
+        /* Setup */
+        .setup-area { text-align: center; padding: 40px 20px; }
+        input { padding: 12px; font-size: 16px; border: 2px solid #ddd; border-radius: 6px; width: 60%; max-width: 400px; }
+        button { padding: 12px 24px; font-size: 16px; border-radius: 6px; border: none; cursor: pointer; background-color: var(--accent); color: white; transition: 0.2s; font-weight: bold; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; }
+
+        /* Game */
+        #game-area, #review-area { display: none; animation: fadeIn 0.5s; }
+        
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; background: var(--primary); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold; }
+
+        .flashcard { background: #fff; border: 2px solid #ecf0f1; padding: 40px; margin: 20px 0; border-radius: 10px; text-align: center; background-color: #fafafa; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
+        .verse-text { font-size: 1.4em; color: #2c3e50; display: block; margin-bottom: 15px; line-height: 1.5; }
+        .verse-ref { font-size: 0.9em; color: #7f8c8d; font-style: italic; font-weight: bold; }
+
+        .feedback-msg { text-align: center; font-weight: bold; font-size: 1.2em; min-height: 30px; margin: 10px 0; }
+
+        .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-top: 20px; }
+        .option-btn { background: white; border: 1px solid #bdc3c7; color: #333; padding: 15px; border-radius: 8px; text-align: left; font-size: 0.95em; white-space: normal; line-height: 1.3; }
+        .option-btn:hover { background: #eef2f3; border-color: var(--accent); }
+        
+        .correct { background-color: var(--success) !important; color: white !important; border-color: var(--success) !important; }
+        .wrong { background-color: var(--error) !important; color: white !important; border-color: var(--error) !important; }
+
+        /* Review List */
+        .review-list { list-style: none; padding: 0; max-height: 60vh; overflow-y: auto; border: 1px solid #eee; }
+        .review-item { padding: 12px; border-bottom: 1px solid #eee; display: flex; align-items: center; }
+        .review-item:nth-child(even) { background-color: #f9f9f9; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
+        
+        .loading { margin-top: 15px; color: #7f8c8d; display: none; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Estudo de Subtítulos Bíblicos</h1>
+
+    <!-- TELA INICIAL -->
+    <div id="setup-area" class="setup-area">
+        <p style="color: #666; margin-bottom: 20px;">
+            Certifique-se que os arquivos <strong>subtitulos.xlsx</strong> e <strong>biblia.xlsx</strong> estão na raiz do repositório.<br>
+            <small>(O arquivo da bíblia pode ser o 'Versículos.xlsx', mas renomeie para 'biblia.xlsx' no GitHub ou altere o código se preferir)</small>
+        </p>
+        
+        <input type="text" id="book-input" placeholder="Digite o livro (ex: Gênesis)">
+        <button onclick="iniciarEstudo()">Iniciar Estudo</button>
+        <div id="loading" class="loading">Lendo planilhas grandes... aguarde...</div>
+    </div>
+
+    <!-- TELA DO JOGO -->
+    <div id="game-area">
+        <div class="stats">
+            <div>Restantes: <span id="remaining">0</span></div>
+            <div>Acertos: <span id="score">0</span></div>
+            <div>Progresso: <span id="progress">0</span>%</div>
+        </div>
+
+        <div class="flashcard">
+            <span class="verse-text" id="verse-text">...</span>
+            <span class="verse-ref" id="verse-ref">Cap:Ver</span>
+        </div>
+
+        <div id="feedback" class="feedback-msg"></div>
+
+        <div id="options-container" class="options-grid"></div>
+
+        <div style="text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+            <button style="background-color: #95a5a6;" onclick="toggleReviewMode()">Ver Lista de Subtítulos</button>
+        </div>
+    </div>
+
+    <!-- TELA DE REVISÃO -->
+    <div id="review-area">
+        <h2>Estrutura do Livro</h2>
+        <div style="text-align: center; margin-bottom: 15px;">
+            <button onclick="toggleReviewMode()">Voltar ao Jogo</button>
+        </div>
+        <ul id="review-list" class="review-list"></ul>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURAÇÃO ---
+    // Ajuste aqui se o nome do arquivo da bíblia for diferente no GitHub
+    const ARQUIVO_BIBLIA = 'biblia.xlsx'; 
+    const ARQUIVO_SUBTITULOS = 'subtitulos.xlsx';
+
+    // --- ESTADO ---
+    let dbVerses = [];
+    let dbSubtitles = [];
+    let gameQueue = [];
+    let currentSubtitleList = [];
+    let currentVerse = null;
+    let sessionStats = { correct: 0, wrong: 0, total: 0 };
+    // Rastreamento de performance por subtítulo: 'pending', 'correct', 'wrong'
+    let subtitlePerformance = {}; 
+
+    // Limpa tags HTML (<i>, </i>) e formatações (<, >, /)
+    function cleanText(text) {
+        if (!text) return "";
+        let str = String(text);
+        // Remove tags HTML
+        str = str.replace(/<[^>]*>/g, ''); 
+        // Remove caracteres soltos mencionados se sobrarem
+        str = str.replace(/[<>\/]/g, '');
+        return str.trim();
+    }
+
+    // Normaliza strings para comparação (remove acentos, minúsculo)
+    function normalize(str) {
+        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    }
+
+    async function fetchExcel(url) {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Arquivo não encontrado: ${url}`);
+        const arrayBuffer = await response.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+    }
+
+    async function iniciarEstudo() {
+        const bookInput = document.getElementById('book-input').value;
+        if (!bookInput) return alert("Digite o nome do livro.");
+
+        const loading = document.getElementById('loading');
+        loading.style.display = 'block';
+
+        try {
+            // Carregar planilhas apenas se necessário
+            if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
+            if (dbVerses.length === 0) dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
+
+            // 1. Encontrar o ID do Livro na planilha de Subtítulos
+            // A planilha Subtítulos tem: 'Cód do livro', 'Livro', 'Capítulo', 'Versículo', 'Subtítulo'
+            const targetBookData = dbSubtitles.filter(r => normalize(r['Livro']) === normalize(bookInput));
+            
+            if (targetBookData.length === 0) throw new Error("Livro não encontrado na planilha de subtítulos.");
+
+            // Pegamos o Código do Livro (ex: 10 para Gênesis) e o Nome oficial
+            const bookCode = targetBookData[0]['Cód do livro'];
+            const bookNameOfficial = targetBookData[0]['Livro'];
+
+            // 2. Filtrar a planilha da Bíblia pelo book_number
+            // A planilha Bíblia tem: 'book_number', 'chapter', 'verse', 'text'
+            const bookVersesRaw = dbVerses.filter(r => r['book_number'] == bookCode);
+
+            if (bookVersesRaw.length === 0) throw new Error(`Versículos não encontrados para o código ${bookCode} na planilha da Bíblia.`);
+
+            prepararLogica(bookNameOfficial, targetBookData, bookVersesRaw);
+
+        } catch (error) {
+            console.error(error);
+            alert("Erro: " + error.message);
+        } finally {
+            loading.style.display = 'none';
+        }
+    }
+
+    function prepararLogica(bookName, rawSubtitles, rawVerses) {
+        // Ordenar subtítulos cronologicamente
+        currentSubtitleList = rawSubtitles.map(s => ({
+            cap: parseInt(s['Capítulo']),
+            ver: parseInt(s['Versículo']),
+            text: cleanText(s['Subtítulo']),
+            fullText: s['Subtítulo'] // Mantém original para exibição se precisar
+        })).sort((a, b) => (a.cap - b.cap) || (a.ver - b.ver));
+
+        // Inicializar performance
+        subtitlePerformance = {};
+        currentSubtitleList.forEach(s => subtitlePerformance[s.text] = 'pending');
+
+        gameQueue = [];
+
+        // ALGORITMO DE VINCULAÇÃO (Versículo -> Subtítulo Anterior mais próximo)
+        rawVerses.forEach(v => {
+            const vCap = parseInt(v['chapter']);
+            const vVer = parseInt(v['verse']);
+            const vText = cleanText(v['text']);
+
+            // Encontrar qual subtítulo cobre este versículo
+            // Procuramos o último subtítulo que começou ANTES ou NO MESMO versículo atual
+            let correctSub = null;
+
+            for (let i = 0; i < currentSubtitleList.length; i++) {
+                const sub = currentSubtitleList[i];
+                
+                // Se o subtítulo começa depois do versículo atual, paramos. O correto é o anterior (i-1).
+                if (sub.cap > vCap || (sub.cap === vCap && sub.ver > vVer)) {
+                    break;
+                }
+                correctSub = sub.text;
+            }
+
+            // Se encontrou um subtítulo (versículos antes do primeiro subtítulo do livro ficam órfãos, mas raro na biblia formatada assim)
+            if (correctSub) {
+                gameQueue.push({
+                    text: vText,
+                    ref: `${bookName} ${vCap}:${vVer}`,
+                    answer: correctSub
+                });
+            }
+        });
+
+        if (gameQueue.length === 0) return alert("Nenhum versículo mapeado.");
+
+        // Embaralhar fila
+        shuffleArray(gameQueue);
+        
+        sessionStats.total = gameQueue.length;
+        sessionStats.correct = 0;
+        sessionStats.wrong = 0;
+
+        document.getElementById('setup-area').style.display = 'none';
+        document.getElementById('game-area').style.display = 'block';
+
+        loadCard();
+    }
+
+    function loadCard() {
+        updateStats();
+        const feedback = document.getElementById('feedback');
+        feedback.innerText = "";
+        
+        if (gameQueue.length === 0) {
+            alert("Parabéns! Você finalizou o livro.");
+            toggleReviewMode();
+            return;
+        }
+
+        currentVerse = gameQueue[0];
+        document.getElementById('verse-text').innerText = currentVerse.text;
+        document.getElementById('verse-ref').innerText = currentVerse.ref;
+
+        generateOptions(currentVerse.answer);
+    }
+
+    function generateOptions(correctAnswer) {
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+
+        // Obter lista única de textos dos subtítulos
+        let allOptions = currentSubtitleList.map(s => s.text);
+        allOptions = [...new Set(allOptions)]; // Remove duplicados se houver
+
+        // 1. Garantir que a resposta certa está lá
+        // 2. Adicionar 3 ou 4 respostas erradas aleatórias
+        // Nota: Se quiser mostrar TODOS os subtítulos do livro (pode ser muitos), use a lógica abaixo comentada.
+        // O prompt diz "Todos os subtítulos devem ser listados". Se for um livro grande (Salmos), isso quebra a tela.
+        // Vou assumir que devemos mostrar TODOS, mas cuidado com livros grandes.
+        
+        let displayOptions = shuffleArray([...allOptions]);
+
+        displayOptions.forEach(optText => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = optText;
+            btn.onclick = () => checkAnswer(btn, optText, correctAnswer);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(btn, selected, correct) {
+        // Trava cliques
+        const allBtns = document.querySelectorAll('.option-btn');
+        allBtns.forEach(b => b.disabled = true);
+
+        const feedback = document.getElementById('feedback');
+
+        if (selected === correct) {
+            btn.classList.add('correct');
+            feedback.innerText = "Correto!";
+            feedback.style.color = "var(--success)";
+            sessionStats.correct++;
+
+            // Se nunca errou este subtítulo, marca como correto na revisão
+            if (subtitlePerformance[correct] !== 'wrong') {
+                subtitlePerformance[correct] = 'correct';
+            }
+
+            gameQueue.shift(); // Remove da fila
+            setTimeout(loadCard, 1000);
+        } else {
+            btn.classList.add('wrong');
+            feedback.innerText = `Resposta Correta: ${correct}`;
+            feedback.style.color = "var(--error)";
+            sessionStats.wrong++;
+
+            subtitlePerformance[correct] = 'wrong';
+
+            // Destaca o correto
+            allBtns.forEach(b => {
+                if (b.innerText === correct) b.classList.add('correct');
+            });
+
+            // Joga para o final da fila
+            const retryItem = gameQueue.shift();
+            gameQueue.push(retryItem);
+
+            setTimeout(loadCard, 2500); // Mais tempo para ler o erro
+        }
+    }
+
+    function updateStats() {
+        document.getElementById('remaining').innerText = gameQueue.length;
+        document.getElementById('score').innerText = sessionStats.correct;
+        
+        const done = sessionStats.total - gameQueue.length;
+        const pct = sessionStats.total > 0 ? Math.floor((done / sessionStats.total) * 100) : 0;
+        document.getElementById('progress').innerText = pct;
+    }
+
+    function toggleReviewMode() {
+        const gameDiv = document.getElementById('game-area');
+        const reviewDiv = document.getElementById('review-area');
+        const list = document.getElementById('review-list');
+
+        if (reviewDiv.style.display === 'block') {
+            reviewDiv.style.display = 'none';
+            if (gameQueue.length > 0) gameDiv.style.display = 'block';
+            else document.getElementById('setup-area').style.display = 'block'; // Voltar ao inicio se acabou
+        } else {
+            // Montar lista visual
+            list.innerHTML = '';
+            
+            // Usar currentSubtitleList que já está ordenada por Cap:Vers
+            currentSubtitleList.forEach(sub => {
+                const li = document.createElement('li');
+                li.className = 'review-item';
+                
+                let statusColor = '#bdc3c7'; // Cinza (pendente)
+                if (subtitlePerformance[sub.text] === 'correct') statusColor = '#27ae60'; // Verde
+                if (subtitlePerformance[sub.text] === 'wrong') statusColor = '#c0392b'; // Vermelho
+
+                li.innerHTML = `
+                    <div class="dot" style="background-color: ${statusColor}"></div>
+                    <div>
+                        <strong>Cap ${sub.cap}:${sub.ver}</strong> - ${sub.text}
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+
+            gameDiv.style.display = 'none';
+            reviewDiv.style.display = 'block';
+        }
+    }
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+</script>
+
+</body>
+</html>
