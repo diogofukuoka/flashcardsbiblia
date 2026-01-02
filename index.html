@@ -2,8 +2,13 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <!-- Forçar atualização e não salvar em cache -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos</title>
+    <title>Flashcards Bíblicos v2</title>
     <!-- Leitura de Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <!-- Arrastar e Soltar (Mobile Friendly) -->
@@ -11,42 +16,33 @@
     
     <style>
         :root { --bg: #121212; --text: #e0e0e0; --card-bg: #1e1e1e; --border: #333; --accent: #3b78e7; }
-        
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: var(--bg); 
-            margin: 0; padding: 15px; color: var(--text); 
-            padding-bottom: 50px; 
-        }
-
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: var(--text); padding-bottom: 50px; }
         .container { max-width: 1000px; margin: 0 auto; }
         
-        h1 { text-align: center; color: #fff; margin-bottom: 10px; font-weight: 300; font-size: 1.8rem; }
+        h1 { text-align: center; color: #fff; margin-bottom: 5px; font-weight: 300; font-size: 1.8rem; }
+        .version-tag { text-align: center; color: #4caf50; font-size: 0.8rem; margin-bottom: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
         
-        /* UTILITÁRIOS */
         .hidden { display: none !important; }
         .section-title { color: #888; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 30px; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        
+        /* Botões e Grid */
         .btn-action { background: transparent; border: 1px solid #666; color: #ccc; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-size: 0.9rem; flex: 1; min-width: 140px; margin: 5px; }
-        .btn-action:active { background: rgba(255,255,255,0.1); }
         .action-container { display: flex; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
-
-        /* GRID DE LIVROS */
         .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: 8px; }
         .book-btn { aspect-ratio: 1; border: none; border-radius: 12px; font-weight: 700; font-size: 14px; color: rgba(255,255,255,0.95); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s; }
         .book-btn:active { transform: scale(0.95); }
 
-        /* CORES */
+        /* Categorias Cores */
         .cat-law, .cat-gospels { background-color: #3b78e7; }
         .cat-history, .cat-history-nt { background-color: #d35400; }
         .cat-poetry, .cat-general { background-color: #27ae60; }
         .cat-prophets, .cat-apoc { background-color: #c0392b; }
         .cat-paul { background-color: #f1c40f; color: #121212; }
 
-        /* LOADING & MODAL */
         .loading { text-align: center; color: #aaa; margin-top: 40px; font-size: 1.2rem; padding: 20px; }
         
+        /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .modal-content { background: #2c2c2c; padding: 30px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         .modal-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
@@ -54,7 +50,7 @@
         .btn-mode-order { background-color: #27ae60; }
         .btn-close { background-color: #444; margin-top: 20px; }
 
-        /* JOGO FLASHCARDS */
+        /* Jogo UI */
         .stats-bar { display: flex; justify-content: space-between; background: #2c2c2c; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 0.9em; border: 1px solid var(--border); }
         .flashcard { background: var(--card-bg); border: 1px solid var(--border); padding: 25px; margin: 20px 0; border-radius: 16px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
         .verse-text { font-size: 1.3rem; line-height: 1.5; display: block; margin-bottom: 15px; color: #fff; }
@@ -66,23 +62,18 @@
         .correct { background-color: #1b5e20 !important; border-color: #2e7d32 !important; color: white !important; }
         .wrong { background-color: #b71c1c !important; border-color: #c62828 !important; color: white !important; }
 
-        /* JOGO ORDENAÇÃO */
+        /* Ordenação UI */
         .sort-instructions { text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 15px; }
         .sortable-list { list-style: none; padding: 0; margin: 0; }
-        .sortable-item { 
-            background: #2c2c2c; border: 1px solid #444; padding: 15px; margin-bottom: 8px; 
-            border-radius: 8px; display: flex; align-items: center; cursor: grab; 
-            transition: background-color 0.2s; touch-action: none;
-        }
+        .sortable-item { background: #2c2c2c; border: 1px solid #444; padding: 15px; margin-bottom: 8px; border-radius: 8px; display: flex; align-items: center; cursor: grab; transition: background-color 0.2s; touch-action: none; }
         .sortable-item:active { cursor: grabbing; background: #383838; }
         .handle { color: #666; margin-right: 15px; font-size: 1.2rem; cursor: grab; }
         .item-text { flex-grow: 1; font-size: 0.95rem; }
-        
         .pos-correct { border-left: 5px solid #27ae60; background: rgba(39, 174, 96, 0.1); }
         .pos-wrong { border-left: 5px solid #c0392b; background: rgba(192, 57, 43, 0.1); }
         .ghost-class { opacity: 0.5; background: #444; }
 
-        /* REVIEW AREA */
+        /* Review UI */
         .review-list { list-style: none; padding: 0; max-height: 60vh; overflow-y: auto; }
         .review-item { padding: 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; font-size: 0.95em; }
         .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
@@ -100,12 +91,14 @@
 
 <div class="container">
     <h1 id="main-title">Flashcards Bíblicos</h1>
+    <!-- INDICADOR VISUAL DE VERSÃO -->
+    <div class="version-tag" id="version-tag">v2.0 (Filtro Ativo)</div>
 
-    <!-- 1. TELA DE SELEÇÃO DE LIVROS -->
+    <!-- TELA DE SELEÇÃO -->
     <div id="setup-area">
         <div id="loading" class="loading hidden">
             Carregando arquivos...<br>
-            <small style="font-size:0.8em; color: #666">Lendo 'Subtítulos.xlsx' e 'Versículos.xlsx'</small>
+            <small style="font-size:0.8em; color: #666">Lendo planilhas...</small>
         </div>
         
         <div id="grid-container">
@@ -117,31 +110,24 @@
         </div>
     </div>
 
-    <!-- 2. MODAL DE ESCOLHA DE MODO -->
+    <!-- MODAL -->
     <div id="mode-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h2 id="modal-book-title" style="margin-top:0; color:#fff;">Livro</h2>
-            <p style="color:#aaa; margin-bottom:20px;">Escolha o modo de estudo:</p>
-            
-            <button class="modal-btn btn-mode-flash" onclick="selectMode('flashcards')">
-                📖 Estudo de Versículos
-            </button>
-            <button class="modal-btn btn-mode-order" onclick="selectMode('ordering')">
-                🔃 Ordenar Subtítulos
-            </button>
-            
+            <p style="color:#aaa; margin-bottom:20px;">Escolha o modo:</p>
+            <button class="modal-btn btn-mode-flash" onclick="selectMode('flashcards')">📖 Estudo de Versículos</button>
+            <button class="modal-btn btn-mode-order" onclick="selectMode('ordering')">🔃 Ordenar Subtítulos</button>
             <button class="modal-btn btn-close" onclick="closeModal()">Cancelar</button>
         </div>
     </div>
 
-    <!-- 3. JOGO: FLASHCARDS -->
+    <!-- JOGO FLASHCARDS -->
     <div id="game-flashcards" class="hidden">
         <div class="stats-bar">
             <span>📖 <span class="lbl-book-name">...</span></span>
             <span>Faltam: <span id="remaining">0</span></span>
             <span style="color:#4caf50">✔ <span id="score">0</span></span>
         </div>
-
         <div class="flashcard">
             <span class="verse-text" id="verse-text">...</span>
             <span class="verse-ref" id="verse-ref">Cap:Ver</span>
@@ -156,21 +142,17 @@
         </div>
     </div>
 
-    <!-- 4. JOGO: ORDENAÇÃO -->
+    <!-- JOGO ORDENAÇÃO -->
     <div id="game-ordering" class="hidden">
         <div class="stats-bar">
             <span>🔃 Ordenação</span>
             <span>📖 <span class="lbl-book-name">...</span></span>
         </div>
-
-        <p class="sort-instructions">Arraste os subtítulos para a ordem cronológica correta:</p>
-        
+        <p class="sort-instructions">Arraste os subtítulos para a ordem correta:</p>
         <div class="options-container-scroll" style="max-height: 60vh;">
             <ul id="sortable-list" class="sortable-list"></ul>
         </div>
-
         <div id="order-feedback" class="feedback-msg"></div>
-
         <div class="action-container">
             <button class="btn-action" style="background:#27ae60; color:white; border:none;" onclick="checkOrder()">Verificar Ordem</button>
             <button class="btn-action" onclick="showCorrectOrder()">Desistir / Ver Resposta</button>
@@ -178,7 +160,7 @@
         </div>
     </div>
 
-    <!-- 5. TELA DE REVISÃO (ESTRUTURA) -->
+    <!-- REVIEW -->
     <div id="review-area" class="hidden">
         <h2>Estrutura do Livro</h2>
         <div style="text-align: center; margin-bottom: 20px;">
@@ -191,7 +173,7 @@
 <script>
     const ARQUIVO_BIBLIA = 'Versículos.xlsx'; 
     const ARQUIVO_SUBTITULOS = 'Subtítulos.xlsx';
-
+    
     // Lista de Livros
     const bibleBooks = [
         { abbr: 'Gn', name: 'Gênesis', cat: 'cat-law' }, { abbr: 'Êx', name: 'Êxodo', cat: 'cat-law' }, { abbr: 'Lv', name: 'Levítico', cat: 'cat-law' }, { abbr: 'Nm', name: 'Números', cat: 'cat-law' }, { abbr: 'Dt', name: 'Deuteronômio', cat: 'cat-law' },
@@ -206,35 +188,24 @@
         { abbr: 'Ap', name: 'Apocalipse', cat: 'cat-apoc' }
     ];
 
-    // Estados
     let dbVerses = [], dbSubtitles = [];
     let selectedBookName = "";
-    
-    // Estado Flashcard
     let gameQueue = [], currentSubtitleList = [], currentVerse = null;
     let sessionStats = { correct: 0, wrong: 0, total: 0 };
     let subtitlePerformance = {}; 
-    
-    // Estado Ordenação
-    let orderingListOriginal = [];
-    let sortableInstance = null;
+    let orderingListOriginal = [], sortableInstance = null;
 
-    // --- INICIALIZAÇÃO ---
-    window.onload = function() {
-        renderBookGrid();
-    }
+    window.onload = function() { renderBookGrid(); }
 
     function renderBookGrid() {
         const gridVT = document.getElementById('grid-vt');
         const gridNT = document.getElementById('grid-nt');
         gridVT.innerHTML = ""; gridNT.innerHTML = "";
-
         bibleBooks.forEach((book, index) => {
             const btn = document.createElement('button');
             btn.className = `book-btn ${book.cat}`;
             btn.innerText = book.abbr;
             btn.onclick = () => openModeModal(book.name);
-
             if (index < 39) gridVT.appendChild(btn); else gridNT.appendChild(btn);
         });
     }
@@ -244,16 +215,14 @@
         document.getElementById('modal-book-title').innerText = bookName;
         document.getElementById('mode-modal').classList.remove('hidden');
     }
-
-    function closeModal() {
-        document.getElementById('mode-modal').classList.add('hidden');
-    }
+    function closeModal() { document.getElementById('mode-modal').classList.add('hidden'); }
 
     async function selectMode(mode) {
         closeModal();
         const loading = document.getElementById('loading');
         const gridContainer = document.getElementById('grid-container');
         document.getElementById('main-title').classList.add('hidden');
+        document.getElementById('version-tag').classList.add('hidden'); // esconde versão no jogo
         
         loading.classList.remove('hidden');
         gridContainer.classList.add('hidden');
@@ -262,24 +231,20 @@
             if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
             if (mode === 'flashcards' && dbVerses.length === 0) dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
 
-            if (mode === 'flashcards') {
-                startFlashcardsGame();
-            } else {
-                startOrderingGame();
-            }
+            if (mode === 'flashcards') startFlashcardsGame();
+            else startOrderingGame();
         } catch (error) {
             console.error(error);
-            alert("Erro ao carregar dados: " + error.message);
+            alert("Erro ao carregar: " + error.message);
             resetGame();
         } finally {
             loading.classList.add('hidden');
         }
     }
 
-    // --- LEITURA EXCEL ---
     async function fetchExcel(filename) {
-        // Cache Busting: Adiciona um timestamp para forçar o navegador a baixar a versão nova
-        const url = encodeURI(filename) + "?t=" + new Date().getTime();
+        // CACHE BUSTING: Garante versão nova do arquivo Excel
+        const url = encodeURI(filename) + "?v=" + new Date().getTime();
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Arquivo não encontrado: ${filename}`);
         const ab = await response.arrayBuffer();
@@ -287,28 +252,22 @@
         return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
     }
 
-    function cleanText(text) {
-        return String(text || "").replace(/<[^>]*>/g, '').replace(/[<>\/]/g, '').trim();
-    }
-    
-    function normalize(str) {
-        return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    }
+    function cleanText(text) { return String(text || "").replace(/<[^>]*>/g, '').replace(/[<>\/]/g, '').trim(); }
+    function normalize(str) { return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
 
-    // --- FILTRAGEM E HIGIENIZAÇÃO DE DADOS (REGRA DE OURO) ---
+    // --- FILTRAGEM RIGOROSA ---
     function isValidSubtitle(subText, cap, ver) {
         if (!subText) return false;
+        // Ignora metadados numéricos
+        if (isNaN(cap) || isNaN(ver)) return false; 
         
-        // Verifica se Capítulo e Versículo são números válidos
-        if (isNaN(cap) || isNaN(ver)) return false;
-
         const str = String(subText).trim();
+        // Remove curtos
+        if (str.length < 3) return false; 
+        // PROIBIÇÃO EXPLÍCITA DO ERRO RELATADO
+        if (str.includes("720 3-16")) return false; 
         
-        // Regra 1: Muito curto
-        if (str.length < 3) return false;
-
-        // Regra 2 (A MAIS IMPORTANTE): Deve conter pelo menos UMA LETRA.
-        // Se só tiver números, traços e espaços (ex: "720 3-16"), retorna falso.
+        // EXIGÊNCIA DE LETRAS: Se não tiver letra, é lixo
         const hasLetters = /[a-zA-Z\u00C0-\u00FF]/.test(str);
         if (!hasLetters) return false;
 
@@ -316,18 +275,16 @@
     }
 
     function getBookData() {
-        // Filtragem com limpeza rígida
+        // Filtragem
         const target = dbSubtitles.filter(r => {
-            // Verifica nome do livro
             if (normalize(r['Livro']) !== normalize(selectedBookName)) return false;
-            
-            // Aplica higienização
+            // Filtro de Higiene
             return isValidSubtitle(r['Subtítulo'], r['Capítulo'], r['Versículo']);
         });
 
         if (target.length === 0) throw new Error("Livro não encontrado ou sem subtítulos válidos.");
         
-        // Gera lista ordenada
+        // Ordenação
         const list = target.map((s, idx) => ({
             id: idx,
             cap: parseInt(s['Capítulo']),
@@ -335,36 +292,31 @@
             text: cleanText(s['Subtítulo'])
         })).sort((a, b) => (a.cap - b.cap) || (a.ver - b.ver));
         
-        // Reindexa IDs
+        // Reindexação limpa para o jogo
         list.forEach((item, index) => item.realIndex = index);
         
         return { raw: target, sortedList: list, code: target[0]['Cód do livro'] };
     }
 
-    // --- LÓGICA: FLASHCARDS ---
+    // --- FLASHCARDS ---
     function startFlashcardsGame() {
         const data = getBookData();
         currentSubtitleList = data.sortedList;
-        
         const bookVerses = dbVerses.filter(r => r['book_number'] == data.code);
         if (bookVerses.length === 0) throw new Error("Versículos não encontrados.");
 
-        gameQueue = [];
-        subtitlePerformance = {};
+        gameQueue = []; subtitlePerformance = {};
         currentSubtitleList.forEach(s => subtitlePerformance[s.text] = 'pending');
 
         bookVerses.forEach(v => {
-            const vCap = parseInt(v['chapter']);
-            const vVer = parseInt(v['verse']);
+            const vCap = parseInt(v['chapter']), vVer = parseInt(v['verse']);
             let correctSub = null;
             for (let i = 0; i < currentSubtitleList.length; i++) {
                 const sub = currentSubtitleList[i];
                 if (sub.cap > vCap || (sub.cap === vCap && sub.ver > vVer)) break;
                 correctSub = sub.text;
             }
-            if (correctSub) {
-                gameQueue.push({ text: cleanText(v['text']), ref: `${vCap}:${vVer}`, answer: correctSub });
-            }
+            if (correctSub) gameQueue.push({ text: cleanText(v['text']), ref: `${vCap}:${vVer}`, answer: correctSub });
         });
 
         if (gameQueue.length === 0) throw new Error("Falha no mapeamento.");
@@ -382,18 +334,14 @@
         document.getElementById('feedback').innerText = "";
         document.querySelector('#game-flashcards .options-container-scroll').scrollTop = 0;
 
-        if (gameQueue.length === 0) {
-            alert("Livro finalizado!");
-            return toggleReviewMode();
-        }
+        if (gameQueue.length === 0) { alert("Livro finalizado!"); return toggleReviewMode(); }
 
         currentVerse = gameQueue[0];
         document.getElementById('verse-text').innerText = currentVerse.text;
         document.getElementById('verse-ref').innerText = currentVerse.ref;
         
         const container = document.getElementById('options-container');
-        container.innerHTML = '';
-        container.style.pointerEvents = 'auto';
+        container.innerHTML = ''; container.style.pointerEvents = 'auto';
 
         let options = [...new Set(currentSubtitleList.map(s => s.text))];
         shuffleArray(options);
@@ -413,33 +361,24 @@
         const feedback = document.getElementById('feedback');
 
         if (selected === correct) {
-            btn.classList.add('correct');
-            feedback.innerText = "Correto!"; feedback.style.color = "#4caf50";
+            btn.classList.add('correct'); feedback.innerText = "Correto!"; feedback.style.color = "#4caf50";
             sessionStats.correct++;
             if (subtitlePerformance[correct] !== 'wrong') subtitlePerformance[correct] = 'correct';
-            gameQueue.shift();
-            setTimeout(loadFlashcard, 1000);
+            gameQueue.shift(); setTimeout(loadFlashcard, 1000);
         } else {
-            btn.classList.add('wrong');
-            feedback.innerText = `Resposta: ${correct}`; feedback.style.color = "#f44336";
-            sessionStats.wrong++;
-            subtitlePerformance[correct] = 'wrong';
+            btn.classList.add('wrong'); feedback.innerText = `Resposta: ${correct}`; feedback.style.color = "#f44336";
+            sessionStats.wrong++; subtitlePerformance[correct] = 'wrong';
             document.querySelectorAll('.option-btn').forEach(b => {
-                if(b.innerText === correct) {
-                    b.classList.add('correct');
-                    b.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
+                if(b.innerText === correct) { b.classList.add('correct'); b.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
             });
-            gameQueue.push(gameQueue.shift());
-            setTimeout(loadFlashcard, 2500);
+            gameQueue.push(gameQueue.shift()); setTimeout(loadFlashcard, 2500);
         }
     }
 
-    // --- LÓGICA: ORDENAÇÃO ---
+    // --- ORDENAÇÃO ---
     function startOrderingGame() {
         const data = getBookData();
         orderingListOriginal = [...data.sortedList]; 
-        
         let shuffled = [...orderingListOriginal];
         shuffleArray(shuffled);
 
@@ -459,42 +398,25 @@
         document.getElementById('order-feedback').innerText = "";
 
         if(sortableInstance) sortableInstance.destroy();
-        sortableInstance = new Sortable(listEl, {
-            handle: '.handle', 
-            animation: 150,
-            ghostClass: 'ghost-class'
-        });
+        sortableInstance = new Sortable(listEl, { handle: '.handle', animation: 150, ghostClass: 'ghost-class' });
     }
 
     function checkOrder() {
         const listItems = document.querySelectorAll('#sortable-list .sortable-item');
-        let allCorrect = true;
-        let errors = 0;
-
+        let allCorrect = true, errors = 0;
         listItems.forEach((li, domIndex) => {
             const correctIndex = parseInt(li.getAttribute('data-real-index'));
             li.classList.remove('pos-correct', 'pos-wrong');
-            if (correctIndex === domIndex) {
-                li.classList.add('pos-correct');
-            } else {
-                li.classList.add('pos-wrong');
-                allCorrect = false;
-                errors++;
-            }
+            if (correctIndex === domIndex) li.classList.add('pos-correct');
+            else { li.classList.add('pos-wrong'); allCorrect = false; errors++; }
         });
-
         const fb = document.getElementById('order-feedback');
-        if (allCorrect) {
-            fb.innerText = "Perfeito! Todos os subtítulos estão na ordem correta.";
-            fb.style.color = "#27ae60";
-        } else {
-            fb.innerText = `Você tem ${errors} itens fora de posição.`;
-            fb.style.color = "#c0392b";
-        }
+        if (allCorrect) { fb.innerText = "Perfeito! Todos os subtítulos estão na ordem correta."; fb.style.color = "#27ae60"; }
+        else { fb.innerText = `Você tem ${errors} itens fora de posição.`; fb.style.color = "#c0392b"; }
     }
 
     function showCorrectOrder() {
-        if(!confirm("Tem certeza? Isso irá reorganizar a lista para a resposta correta.")) return;
+        if(!confirm("Tem certeza?")) return;
         const listEl = document.getElementById('sortable-list');
         listEl.innerHTML = "";
         orderingListOriginal.forEach(item => {
@@ -507,27 +429,18 @@
         document.getElementById('order-feedback').innerText = "Esta é a ordem correta.";
     }
 
-    // --- COMUM ---
     function toggleReviewMode() {
         const gameDiv = document.getElementById('game-flashcards');
         const reviewDiv = document.getElementById('review-area');
-        
-        if (!reviewDiv.classList.contains('hidden')) {
-            reviewDiv.classList.add('hidden');
-            gameDiv.classList.remove('hidden');
-        } else {
-            gameDiv.classList.add('hidden');
-            reviewDiv.classList.remove('hidden');
-            
-            const list = document.getElementById('review-list');
-            list.innerHTML = "";
+        if (!reviewDiv.classList.contains('hidden')) { reviewDiv.classList.add('hidden'); gameDiv.classList.remove('hidden'); }
+        else {
+            gameDiv.classList.add('hidden'); reviewDiv.classList.remove('hidden');
+            const list = document.getElementById('review-list'); list.innerHTML = "";
             currentSubtitleList.forEach(sub => {
-                const li = document.createElement('li');
-                li.className = 'review-item';
+                const li = document.createElement('li'); li.className = 'review-item';
                 let color = '#555';
                 if (subtitlePerformance[sub.text] === 'correct') color = '#27ae60';
                 if (subtitlePerformance[sub.text] === 'wrong') color = '#c0392b';
-                
                 li.innerHTML = `<div class="dot" style="background:${color}"></div><div><strong>${sub.cap}:${sub.ver}</strong> - ${sub.text}</div>`;
                 list.appendChild(li);
             });
@@ -536,7 +449,6 @@
 
     function resetGame() { location.reload(); }
     function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
-
 </script>
 </body>
 </html>
