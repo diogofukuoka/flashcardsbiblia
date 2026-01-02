@@ -2,86 +2,125 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <!-- Meta tags para impedir Cache agressivamente -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos v3</title>
-    <!-- Bibliotecas -->
+    <title>Flashcards Bíblicos v3.1</title>
+    
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     
     <style>
         :root { --bg: #121212; --text: #e0e0e0; --card-bg: #1e1e1e; --border: #333; --accent: #3b78e7; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); margin: 0; padding: 15px; color: var(--text); padding-bottom: 50px; }
-        .container { max-width: 1000px; margin: 0 auto; }
         
-        h1 { text-align: center; color: #fff; margin-bottom: 5px; font-weight: 300; font-size: 1.8rem; }
-        .version-tag { text-align: center; color: #ff9800; font-size: 0.8rem; margin-bottom: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg); 
+            margin: 0; padding: 10px; /* Padding reduzido no body */
+            color: var(--text); 
+            height: 100vh; /* Garante altura total */
+            overflow: hidden; /* Evita scroll duplo */
+        }
+
+        .container { 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1 { text-align: center; color: #fff; margin: 5px 0; font-weight: 300; font-size: 1.5rem; }
+        .version-tag { text-align: center; color: #00bcd4; font-size: 0.7rem; margin-bottom: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
         
         .hidden { display: none !important; }
-        .section-title { color: #888; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 30px; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 5px; }
         
-        /* Botões */
-        .btn-action { background: transparent; border: 1px solid #666; color: #ccc; padding: 12px 24px; border-radius: 50px; cursor: pointer; font-size: 0.9rem; flex: 1; min-width: 140px; margin: 5px; }
-        .action-container { display: flex; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
-        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: 8px; }
-        .book-btn { aspect-ratio: 1; border: none; border-radius: 12px; font-weight: 700; font-size: 14px; color: rgba(255,255,255,0.95); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s; }
+        /* SCROLL GERAL */
+        .scroll-area { overflow-y: auto; flex-grow: 1; padding-bottom: 20px; }
+
+        /* SELEÇÃO DE LIVROS */
+        .section-title { color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 20px; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 2px; }
+        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 6px; }
+        .book-btn { aspect-ratio: 1; border: none; border-radius: 8px; font-weight: 700; font-size: 13px; color: rgba(255,255,255,0.95); cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
         .book-btn:active { transform: scale(0.95); }
 
-        /* Cores Categorias */
+        /* CORES */
         .cat-law, .cat-gospels { background-color: #3b78e7; }
         .cat-history, .cat-history-nt { background-color: #d35400; }
         .cat-poetry, .cat-general { background-color: #27ae60; }
         .cat-prophets, .cat-apoc { background-color: #c0392b; }
         .cat-paul { background-color: #f1c40f; color: #121212; }
 
-        .loading { text-align: center; color: #aaa; margin-top: 40px; font-size: 1.2rem; padding: 20px; }
-        
-        /* Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: flex; justify-content: center; align-items: center; padding: 20px; }
-        .modal-content { background: #2c2c2c; padding: 30px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        .modal-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        /* MODAL */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .modal-content { background: #2c2c2c; padding: 25px; border-radius: 12px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
+        .modal-btn { display: block; width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; font-size: 0.95rem; cursor: pointer; font-weight: bold; color: white; }
         .btn-mode-flash { background-color: #3b78e7; }
         .btn-mode-order { background-color: #27ae60; }
-        .btn-close { background-color: #444; margin-top: 20px; }
+        .btn-close { background-color: #444; margin-top: 15px; }
 
-        /* Game UI */
-        .stats-bar { display: flex; justify-content: space-between; background: #2c2c2c; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 0.9em; border: 1px solid var(--border); }
-        .flashcard { background: var(--card-bg); border: 1px solid var(--border); padding: 25px; margin: 20px 0; border-radius: 16px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
-        .verse-text { font-size: 1.3rem; line-height: 1.5; display: block; margin-bottom: 15px; color: #fff; }
-        .verse-ref { color: #888; font-style: italic; font-size: 0.9rem; margin-top: 10px; display: block;}
-        .feedback-msg { text-align: center; font-weight: bold; font-size: 1.1em; min-height: 30px; margin: 10px 0; padding: 10px; border-radius: 8px; }
-        .options-container-scroll { max-height: 45vh; overflow-y: auto; padding-right: 5px; margin-bottom: 20px; scrollbar-width: thin; scrollbar-color: #555 #1e1e1e; }
-        .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .option-btn { background: #2c2c2c; border: 1px solid var(--border); color: #e0e0e0; padding: 15px; border-radius: 10px; text-align: left; cursor: pointer; font-size: 0.95rem; line-height: 1.3; }
+        /* UI DO JOGO */
+        .game-header { flex-shrink: 0; }
+        .stats-bar { display: flex; justify-content: space-between; background: #2c2c2c; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.85em; border: 1px solid var(--border); }
+        
+        .flashcard { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; margin: 10px 0; border-radius: 12px; text-align: center; }
+        .verse-text { font-size: 1.2rem; line-height: 1.4; display: block; margin-bottom: 10px; color: #fff; }
+        .verse-ref { color: #888; font-style: italic; font-size: 0.8rem; display: block;}
+        
+        .feedback-msg { text-align: center; font-weight: bold; font-size: 1rem; min-height: 25px; margin: 5px 0; padding: 5px; }
+        
+        /* LISTA DE OPÇÕES (FLASHCARD) */
+        .options-container-scroll { max-height: 40vh; overflow-y: auto; padding-right: 5px; margin-bottom: 10px; scrollbar-width: thin; scrollbar-color: #555 #1e1e1e; }
+        .options-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        .option-btn { background: #2c2c2c; border: 1px solid var(--border); color: #e0e0e0; padding: 12px; border-radius: 8px; text-align: left; cursor: pointer; font-size: 0.9rem; line-height: 1.2; }
         .correct { background-color: #1b5e20 !important; border-color: #2e7d32 !important; color: white !important; }
         .wrong { background-color: #b71c1c !important; border-color: #c62828 !important; color: white !important; }
+        .btn-action { background: transparent; border: 1px solid #666; color: #ccc; padding: 10px 20px; border-radius: 50px; cursor: pointer; font-size: 0.85rem; flex: 1; margin: 5px; }
 
-        /* Sort UI */
-        .sort-instructions { text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 15px; }
-        .sortable-list { list-style: none; padding: 0; margin: 0; }
-        .sortable-item { background: #2c2c2c; border: 1px solid #444; padding: 15px; margin-bottom: 8px; border-radius: 8px; display: flex; align-items: center; cursor: grab; transition: background-color 0.2s; touch-action: none; }
-        .sortable-item:active { cursor: grabbing; background: #383838; }
-        .handle { color: #666; margin-right: 15px; font-size: 1.2rem; cursor: grab; }
-        .item-text { flex-grow: 1; font-size: 0.95rem; }
-        .pos-correct { border-left: 5px solid #27ae60; background: rgba(39, 174, 96, 0.1); }
-        .pos-wrong { border-left: 5px solid #c0392b; background: rgba(192, 57, 43, 0.1); }
-        .ghost-class { opacity: 0.5; background: #444; }
+        /* UI DA REVISÃO (ESTRUTURA) - OTIMIZADA */
+        .review-header {
+            text-align: center;
+            padding-bottom: 10px;
+            flex-shrink: 0; /* Não encolhe */
+        }
+        .review-header h2 { margin: 5px 0; font-size: 1.2rem; color: #fff; }
+        .review-header button { margin-bottom: 5px; padding: 8px 20px; font-size: 0.85rem; }
 
-        /* Review UI */
-        .review-list { list-style: none; padding: 0; max-height: 60vh; overflow-y: auto; }
-        .review-item { padding: 15px; border-bottom: 1px solid var(--border); display: flex; align-items: center; font-size: 0.95em; }
-        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
+        .review-list { 
+            list-style: none; 
+            padding: 0; 
+            margin: 0;
+            /* Ocupa a altura restante da tela, menos o cabeçalho (~140px) */
+            height: calc(100vh - 140px); 
+            overflow-y: auto; 
+            border-top: 1px solid #333;
+            scrollbar-width: thin;
+        }
+        
+        .review-item { 
+            padding: 8px 5px; /* Compacto verticalmente */
+            border-bottom: 1px solid #2a2a2a; 
+            display: flex; 
+            align-items: center; 
+            font-size: 0.85rem; /* Fonte levemente menor */
+            line-height: 1.3;
+        }
+        .review-item:nth-child(even) { background-color: rgba(255,255,255,0.02); }
+        .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; margin-left: 5px; }
+
+        /* ORDENAÇÃO */
+        .sortable-item { background: #2c2c2c; border: 1px solid #444; padding: 12px; margin-bottom: 6px; border-radius: 6px; display: flex; align-items: center; cursor: grab; font-size: 0.9rem; }
+        .handle { color: #666; margin-right: 12px; font-size: 1.2rem; padding: 0 5px; }
+        .pos-correct { border-left: 4px solid #27ae60; background: rgba(39, 174, 96, 0.15); }
+        .pos-wrong { border-left: 4px solid #c0392b; background: rgba(192, 57, 43, 0.15); }
 
         @media (min-width: 768px) {
-            .book-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; }
-            .book-btn { font-size: 18px; border-radius: 16px; }
+            .book-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
+            .book-btn { font-size: 16px; }
             .options-grid { grid-template-columns: repeat(2, 1fr); }
-            .verse-text { font-size: 1.6rem; }
             .container { padding: 30px; }
         }
     </style>
@@ -89,15 +128,16 @@
 <body>
 
 <div class="container">
-    <h1 id="main-title">Flashcards Bíblicos</h1>
-    <!-- Tag de versão para garantir que atualizou -->
-    <div class="version-tag" id="version-tag">v3.0 (Filtro Anti-Lixo)</div>
+    <div id="main-header">
+        <h1 id="main-title">Flashcards Bíblicos</h1>
+        <div class="version-tag" id="version-tag">v3.1 (Lista Otimizada)</div>
+    </div>
 
     <!-- SELEÇÃO -->
-    <div id="setup-area">
-        <div id="loading" class="loading hidden">Carregando...</div>
+    <div id="setup-area" class="scroll-area">
+        <div id="loading" class="loading hidden" style="text-align:center; padding:20px; color:#aaa;">Carregando...</div>
         <div id="grid-container">
-            <p style="text-align:center; color:#888; margin-bottom:10px;">Selecione um livro:</p>
+            <p style="text-align:center; color:#888; margin-bottom:10px; font-size:0.9rem;">Selecione um livro:</p>
             <div class="section-title">Antigo Testamento</div>
             <div id="grid-vt" class="book-grid"></div>
             <div class="section-title">Novo Testamento</div>
@@ -109,7 +149,7 @@
     <div id="mode-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h2 id="modal-book-title" style="margin-top:0; color:#fff;">Livro</h2>
-            <p style="color:#aaa; margin-bottom:20px;">Escolha o modo:</p>
+            <p style="color:#aaa; margin-bottom:15px; font-size:0.9rem;">Escolha o modo:</p>
             <button class="modal-btn btn-mode-flash" onclick="selectMode('flashcards')">📖 Estudo de Versículos</button>
             <button class="modal-btn btn-mode-order" onclick="selectMode('ordering')">🔃 Ordenar Subtítulos</button>
             <button class="modal-btn btn-close" onclick="closeModal()">Cancelar</button>
@@ -117,50 +157,59 @@
     </div>
 
     <!-- FLASHCARDS -->
-    <div id="game-flashcards" class="hidden">
-        <div class="stats-bar">
-            <span>📖 <span class="lbl-book-name">...</span></span>
-            <span>Faltam: <span id="remaining">0</span></span>
-            <span style="color:#4caf50">✔ <span id="score">0</span></span>
+    <div id="game-flashcards" class="hidden scroll-area">
+        <div class="game-header">
+            <div class="stats-bar">
+                <span>📖 <span class="lbl-book-name">...</span></span>
+                <span>Faltam: <span id="remaining">0</span></span>
+                <span style="color:#4caf50">✔ <span id="score">0</span></span>
+            </div>
         </div>
+        
         <div class="flashcard">
             <span class="verse-text" id="verse-text">...</span>
             <span class="verse-ref" id="verse-ref">Cap:Ver</span>
         </div>
         <div id="feedback" class="feedback-msg"></div>
+        
         <div class="options-container-scroll">
             <div id="options-container" class="options-grid"></div>
         </div>
-        <div class="action-container">
+        
+        <div style="display:flex; justify-content:center; flex-wrap:wrap;">
             <button class="btn-action" onclick="toggleReviewMode()">Ver Estrutura</button>
             <button class="btn-action" onclick="resetGame()">Sair</button>
         </div>
     </div>
 
     <!-- ORDENAÇÃO -->
-    <div id="game-ordering" class="hidden">
+    <div id="game-ordering" class="hidden scroll-area">
         <div class="stats-bar">
             <span>🔃 Ordenação</span>
             <span>📖 <span class="lbl-book-name">...</span></span>
         </div>
-        <p class="sort-instructions">Arraste os subtítulos para a ordem correta:</p>
-        <div class="options-container-scroll" style="max-height: 60vh;">
+        <p style="text-align:center; color:#888; font-size:0.85rem; margin-bottom:10px;">Arraste para a ordem correta:</p>
+        
+        <div class="options-container-scroll" style="max-height: 55vh;">
             <ul id="sortable-list" class="sortable-list"></ul>
         </div>
+        
         <div id="order-feedback" class="feedback-msg"></div>
-        <div class="action-container">
-            <button class="btn-action" style="background:#27ae60; color:white; border:none;" onclick="checkOrder()">Verificar Ordem</button>
-            <button class="btn-action" onclick="showCorrectOrder()">Desistir / Ver Resposta</button>
+        
+        <div style="display:flex; justify-content:center; flex-wrap:wrap;">
+            <button class="btn-action" style="background:#27ae60; color:white; border:none;" onclick="checkOrder()">Verificar</button>
+            <button class="btn-action" onclick="showCorrectOrder()">Resposta</button>
             <button class="btn-action" onclick="resetGame()">Sair</button>
         </div>
     </div>
 
-    <!-- REVIEW -->
-    <div id="review-area" class="hidden">
-        <h2>Estrutura do Livro</h2>
-        <div style="text-align: center; margin-bottom: 20px;">
+    <!-- REVIEW (ESTRUTURA DO LIVRO) - TELA CHEIA -->
+    <div id="review-area" class="hidden" style="height:100%; display:flex; flex-direction:column;">
+        <div class="review-header">
+            <h2>Estrutura: <span class="lbl-book-name" style="font-weight:normal; color:#aaa;"></span></h2>
             <button class="btn-action" onclick="toggleReviewMode()">Voltar ao Jogo</button>
         </div>
+        <!-- A lista agora ocupa todo o resto da tela -->
         <ul id="review-list" class="review-list"></ul>
     </div>
 </div>
@@ -169,7 +218,7 @@
     const ARQUIVO_BIBLIA = 'Versículos.xlsx'; 
     const ARQUIVO_SUBTITULOS = 'Subtítulos.xlsx';
     
-    // Lista de Livros
+    // Lista de Livros (Reduzida no código para brevidade, mas funciona igual)
     const bibleBooks = [
         { abbr: 'Gn', name: 'Gênesis', cat: 'cat-law' }, { abbr: 'Êx', name: 'Êxodo', cat: 'cat-law' }, { abbr: 'Lv', name: 'Levítico', cat: 'cat-law' }, { abbr: 'Nm', name: 'Números', cat: 'cat-law' }, { abbr: 'Dt', name: 'Deuteronômio', cat: 'cat-law' },
         { abbr: 'Js', name: 'Josué', cat: 'cat-history' }, { abbr: 'Jz', name: 'Juízes', cat: 'cat-history' }, { abbr: 'Rt', name: 'Rute', cat: 'cat-history' }, { abbr: '1Sm', name: '1 Samuel', cat: 'cat-history' }, { abbr: '2Sm', name: '2 Samuel', cat: 'cat-history' }, { abbr: '1Rs', name: '1 Reis', cat: 'cat-history' }, { abbr: '2Rs', name: '2 Reis', cat: 'cat-history' }, { abbr: '1Cr', name: '1 Crônicas', cat: 'cat-history' }, { abbr: '2Cr', name: '2 Crônicas', cat: 'cat-history' }, { abbr: 'Ed', name: 'Esdras', cat: 'cat-history' }, { abbr: 'Ne', name: 'Neemias', cat: 'cat-history' }, { abbr: 'Et', name: 'Ester', cat: 'cat-history' },
@@ -215,12 +264,11 @@
     async function selectMode(mode) {
         closeModal();
         const loading = document.getElementById('loading');
-        const gridContainer = document.getElementById('grid-container');
-        document.getElementById('main-title').classList.add('hidden');
-        document.getElementById('version-tag').classList.add('hidden');
+        const setup = document.getElementById('setup-area');
+        document.getElementById('main-header').classList.add('hidden');
         
         loading.classList.remove('hidden');
-        gridContainer.classList.add('hidden');
+        setup.classList.add('hidden');
 
         try {
             if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
@@ -238,8 +286,7 @@
     }
 
     async function fetchExcel(filename) {
-        // Cache Busting via Timestamp
-        const url = encodeURI(filename) + "?t=" + new Date().getTime();
+        const url = encodeURI(filename) + "?v=" + new Date().getTime();
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Arquivo não encontrado: ${filename}`);
         const ab = await response.arrayBuffer();
@@ -250,28 +297,17 @@
     function cleanText(text) { return String(text || "").replace(/<[^>]*>/g, '').replace(/[<>\/]/g, '').trim(); }
     function normalize(str) { return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
 
-    // --- FILTRAGEM DEFINITIVA (REGRA DE 2 LETRAS) ---
     function isValidSubtitle(subText) {
         if (!subText) return false;
         const str = String(subText).trim();
-
-        // 1. Regex que detecta padrão "Números Espaço DoisPontos/Traço"
-        // Ex: "680 2:1-22" ou "720 3-16"
         if (/^\d+[\s\d:\-]+$/.test(str)) return false;
-
-        // 2. CONTAGEM DE LETRAS: OBRIGATÓRIO TER PELO MENOS 2 LETRAS
-        // Isso elimina qualquer código numérico ou referência bíblica solta
         const letterCount = (str.match(/[a-zA-Z\u00C0-\u00FF]/g) || []).length;
-        
-        if (letterCount < 2) return false;
-
-        return true;
+        return letterCount >= 2;
     }
 
     function getBookData() {
         const target = dbSubtitles.filter(r => {
             if (normalize(r['Livro']) !== normalize(selectedBookName)) return false;
-            // APLICA O FILTRO NOVO
             return isValidSubtitle(r['Subtítulo']);
         });
 
@@ -288,7 +324,7 @@
         return { raw: target, sortedList: list, code: target[0]['Cód do livro'] };
     }
 
-    // --- FLASHCARDS ---
+    // FLASHCARDS
     function startFlashcardsGame() {
         const data = getBookData();
         currentSubtitleList = data.sortedList;
@@ -365,7 +401,7 @@
         }
     }
 
-    // --- ORDENAÇÃO ---
+    // ORDENAÇÃO
     function startOrderingGame() {
         const data = getBookData();
         orderingListOriginal = [...data.sortedList]; 
@@ -422,15 +458,27 @@
     function toggleReviewMode() {
         const gameDiv = document.getElementById('game-flashcards');
         const reviewDiv = document.getElementById('review-area');
-        if (!reviewDiv.classList.contains('hidden')) { reviewDiv.classList.add('hidden'); gameDiv.classList.remove('hidden'); }
+        
+        // Se a revisão está visível, esconder e mostrar o jogo
+        if (!reviewDiv.classList.contains('hidden')) { 
+            reviewDiv.classList.add('hidden'); 
+            gameDiv.classList.remove('hidden'); 
+        } 
         else {
-            gameDiv.classList.add('hidden'); reviewDiv.classList.remove('hidden');
-            const list = document.getElementById('review-list'); list.innerHTML = "";
+            // Esconder o jogo e mostrar a revisão
+            gameDiv.classList.add('hidden'); 
+            reviewDiv.classList.remove('hidden');
+            
+            const list = document.getElementById('review-list'); 
+            list.innerHTML = "";
+            
             currentSubtitleList.forEach(sub => {
-                const li = document.createElement('li'); li.className = 'review-item';
+                const li = document.createElement('li'); 
+                li.className = 'review-item';
                 let color = '#555';
                 if (subtitlePerformance[sub.text] === 'correct') color = '#27ae60';
                 if (subtitlePerformance[sub.text] === 'wrong') color = '#c0392b';
+                
                 li.innerHTML = `<div class="dot" style="background:${color}"></div><div><strong>${sub.cap}:${sub.ver}</strong> - ${sub.text}</div>`;
                 list.appendChild(li);
             });
