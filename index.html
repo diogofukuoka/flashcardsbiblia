@@ -2,94 +2,133 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Flashcards Bíblicos</title>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <style>
-        :root { --bg: #202124; --text: #e8eaed; --card-bg: #303134; }
+        :root { --bg: #121212; --text: #e0e0e0; --card-bg: #1e1e1e; --border: #333; }
         
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); margin: 0; padding: 10px; color: var(--text); }
-        .container { max-width: 1000px; margin: 0 auto; padding: 10px; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: var(--bg); 
+            margin: 0; 
+            padding: 15px; 
+            color: var(--text); 
+            padding-bottom: 50px; /* Espaço para scroll no mobile */
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; }
         
-        h1, h2 { text-align: center; color: #fff; margin-bottom: 20px; font-weight: 300; }
+        h1 { text-align: center; color: #fff; margin-bottom: 20px; font-weight: 300; font-size: 1.8rem; }
         
-        /* GRID DE LIVROS */
+        /* GRID DE LIVROS RESPONSIVA */
         .book-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            /* Mobile: min 55px (5 colunas), Tablet/PC: min 70px */
+            grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); 
             gap: 8px;
             margin-bottom: 30px;
         }
 
         .book-btn {
-            aspect-ratio: 1; /* Deixa quadrado */
+            aspect-ratio: 1;
             border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            color: rgba(255,255,255,0.9);
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 14px; /* Legível no mobile */
+            color: rgba(255,255,255,0.95);
             cursor: pointer;
-            transition: transform 0.2s, filter 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s;
         }
 
-        .book-btn:hover { transform: scale(1.05); filter: brightness(1.2); z-index: 2; }
         .book-btn:active { transform: scale(0.95); }
 
         /* CORES DAS CATEGORIAS */
-        .cat-law, .cat-gospels { background-color: #4285f4; } /* Azul */
-        .cat-history, .cat-history-nt { background-color: #e67e22; } /* Laranja */
-        .cat-poetry, .cat-general { background-color: #34a853; } /* Verde */
-        .cat-prophets, .cat-apoc { background-color: #ea4335; } /* Vermelho/Rosa */
-        .cat-paul { background-color: #fbbc04; color: #202124; } /* Amarelo (texto escuro) */
+        .cat-law, .cat-gospels { background-color: #3b78e7; }
+        .cat-history, .cat-history-nt { background-color: #d35400; }
+        .cat-poetry, .cat-general { background-color: #27ae60; }
+        .cat-prophets, .cat-apoc { background-color: #c0392b; }
+        .cat-paul { background-color: #f1c40f; color: #121212; }
 
         /* LOADING */
-        .loading { text-align: center; color: #9aa0a6; display: none; margin-top: 20px; font-style: italic; }
+        .loading { 
+            text-align: center; color: #aaa; display: none; margin-top: 40px; 
+            font-size: 1.2rem; padding: 20px;
+        }
 
         /* GAME AREA */
         #game-area, #review-area { display: none; animation: fadeIn 0.4s; }
 
         .stats-bar {
             display: flex; justify-content: space-between;
-            background: #3c4043; padding: 15px; border-radius: 8px;
-            margin-bottom: 20px; font-size: 0.9em;
+            background: #2c2c2c; padding: 15px; border-radius: 12px;
+            margin-bottom: 20px; font-size: 0.9em; border: 1px solid var(--border);
         }
 
         .flashcard {
-            background: var(--card-bg); border: 1px solid #5f6368;
-            padding: 30px; margin: 20px 0; border-radius: 12px;
-            text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            background: var(--card-bg); border: 1px solid var(--border);
+            padding: 25px; margin: 20px 0; border-radius: 16px;
+            text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
         }
-        .verse-text { font-size: 1.3em; line-height: 1.6; display: block; margin-bottom: 15px; color: #fff; }
-        .verse-ref { color: #9aa0a6; font-style: italic; }
-
-        .feedback-msg { text-align: center; font-weight: bold; font-size: 1.1em; min-height: 25px; margin: 15px 0; }
-
-        .options-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
         
+        .verse-text { 
+            font-size: 1.3rem; line-height: 1.5; display: block; 
+            margin-bottom: 15px; color: #fff; 
+        }
+        .verse-ref { color: #888; font-style: italic; font-size: 0.9rem; margin-top: 10px; display: block;}
+
+        .feedback-msg { 
+            text-align: center; font-weight: bold; font-size: 1.1em; 
+            min-height: 30px; margin: 10px 0; padding: 10px; border-radius: 8px;
+        }
+
+        /* OPÇÕES RESPONSIVAS */
+        .options-grid { 
+            display: grid; 
+            grid-template-columns: 1fr; /* Mobile: 1 coluna (lista vertical) */
+            gap: 12px; 
+        }
+
         .option-btn {
-            background: #3c4043; border: 1px solid #5f6368; color: #e8eaed;
-            padding: 15px; border-radius: 6px; text-align: left; cursor: pointer;
-            transition: 0.2s;
+            background: #2c2c2c; border: 1px solid var(--border); color: #e0e0e0;
+            padding: 18px; border-radius: 12px; text-align: left; cursor: pointer;
+            font-size: 1rem; line-height: 1.4; touch-action: manipulation; /* Melhora toque no mobile */
         }
-        .option-btn:hover { background: #5f6368; }
         
-        .correct { background-color: #1e8e3e !important; border-color: #1e8e3e !important; color: white !important; }
-        .wrong { background-color: #d93025 !important; border-color: #d93025 !important; color: white !important; }
+        .correct { background-color: #1b5e20 !important; border-color: #2e7d32 !important; color: white !important; }
+        .wrong { background-color: #b71c1c !important; border-color: #c62828 !important; color: white !important; }
 
-        /* REVIEW */
+        /* REVIEW AREA */
         .review-list { list-style: none; padding: 0; max-height: 60vh; overflow-y: auto; }
-        .review-item { padding: 10px; border-bottom: 1px solid #5f6368; display: flex; align-items: center; font-size: 0.9em; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; }
-
-        button.action-btn {
-            background: transparent; border: 1px solid #9aa0a6; color: #9aa0a6;
-            padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 20px;
+        .review-item { 
+            padding: 15px; border-bottom: 1px solid var(--border); 
+            display: flex; align-items: center; font-size: 0.95em; 
         }
-        button.action-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
+
+        /* BOTÕES DE AÇÃO */
+        .action-container { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px;}
+        button.action-btn {
+            background: transparent; border: 1px solid #666; color: #ccc;
+            padding: 12px 24px; border-radius: 50px; cursor: pointer; font-size: 0.9rem;
+            flex: 1; min-width: 140px; max-width: 250px;
+        }
+        button.action-btn:active { background: rgba(255,255,255,0.1); }
+
+        /* MEDIA QUERIES (Tablets e Desktop) */
+        @media (min-width: 768px) {
+            .book-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; }
+            .book-btn { font-size: 18px; border-radius: 16px; }
+            .options-grid { grid-template-columns: repeat(2, 1fr); } /* 2 colunas no PC/Tablet */
+            .verse-text { font-size: 1.6rem; }
+            .container { padding: 30px; }
+        }
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -99,21 +138,25 @@
 <div class="container">
     <h1 id="main-title">Flashcards Bíblicos</h1>
 
-    <!-- TELA DE SELEÇÃO (GRID) -->
+    <!-- TELA DE SELEÇÃO -->
     <div id="setup-area">
-        <p style="text-align:center; color:#9aa0a6; margin-bottom:20px;">Selecione um livro para estudar:</p>
-        <div id="book-grid" class="book-grid">
-            <!-- Botões gerados via JS -->
+        <div id="loading" class="loading">
+            Carregando arquivos...<br>
+            <small style="font-size:0.8em; color: #666">Lendo 'Subtítulos.xlsx' e 'Versículos.xlsx'</small>
         </div>
-        <div id="loading" class="loading">Carregando Bíblia... aguarde...</div>
+        
+        <div id="grid-container">
+            <p style="text-align:center; color:#888; margin-bottom:20px;">Toque em um livro para começar:</p>
+            <div id="book-grid" class="book-grid"></div>
+        </div>
     </div>
 
     <!-- TELA DO JOGO -->
     <div id="game-area">
         <div class="stats-bar">
-            <span>📖 <span id="current-book-name">Livro</span></span>
-            <span>Restantes: <span id="remaining">0</span></span>
-            <span>Acertos: <span id="score">0</span></span>
+            <span>📖 <span id="current-book-name">...</span></span>
+            <span>Faltam: <span id="remaining">0</span></span>
+            <span style="color:#4caf50">✔ <span id="score">0</span></span>
         </div>
 
         <div class="flashcard">
@@ -125,16 +168,16 @@
 
         <div id="options-container" class="options-grid"></div>
 
-        <div style="text-align: center;">
-            <button class="action-btn" onclick="toggleReviewMode()">Ver Estrutura / Revisar</button>
-            <button class="action-btn" onclick="resetGame()">Escolher Outro Livro</button>
+        <div class="action-container">
+            <button class="action-btn" onclick="toggleReviewMode()">Ver Estrutura</button>
+            <button class="action-btn" onclick="resetGame()">Outro Livro</button>
         </div>
     </div>
 
     <!-- TELA DE REVISÃO -->
     <div id="review-area">
         <h2>Estrutura do Livro</h2>
-        <div style="text-align: center; margin-bottom: 15px;">
+        <div style="text-align: center; margin-bottom: 20px;">
             <button class="action-btn" onclick="toggleReviewMode()">Voltar ao Jogo</button>
         </div>
         <ul id="review-list" class="review-list"></ul>
@@ -142,90 +185,48 @@
 </div>
 
 <script>
-    const ARQUIVO_BIBLIA = 'biblia.xlsx'; 
-    const ARQUIVO_SUBTITULOS = 'subtitulos.xlsx';
+    // --- CORREÇÃO DOS NOMES EXATOS ---
+    // Devem ser idênticos aos do GitHub (respeitando maiúsculas e acentos)
+    const ARQUIVO_BIBLIA = 'Versículos.xlsx'; 
+    const ARQUIVO_SUBTITULOS = 'Subtítulos.xlsx';
 
-    // Lista de livros para gerar a grade
+    // Lista de livros
     const bibleBooks = [
-        // Pentateuco (Lei)
-        { abbr: 'Gn', name: 'Gênesis', cat: 'cat-law' },
-        { abbr: 'Êx', name: 'Êxodo', cat: 'cat-law' },
-        { abbr: 'Lv', name: 'Levítico', cat: 'cat-law' },
-        { abbr: 'Nm', name: 'Números', cat: 'cat-law' },
-        { abbr: 'Dt', name: 'Deuteronômio', cat: 'cat-law' },
-        // Históricos AT
-        { abbr: 'Js', name: 'Josué', cat: 'cat-history' },
-        { abbr: 'Jz', name: 'Juízes', cat: 'cat-history' },
-        { abbr: 'Rt', name: 'Rute', cat: 'cat-history' },
-        { abbr: '1Sm', name: '1 Samuel', cat: 'cat-history' },
-        { abbr: '2Sm', name: '2 Samuel', cat: 'cat-history' },
-        { abbr: '1Rs', name: '1 Reis', cat: 'cat-history' },
-        { abbr: '2Rs', name: '2 Reis', cat: 'cat-history' },
-        { abbr: '1Cr', name: '1 Crônicas', cat: 'cat-history' },
-        { abbr: '2Cr', name: '2 Crônicas', cat: 'cat-history' },
-        { abbr: 'Ed', name: 'Esdras', cat: 'cat-history' },
-        { abbr: 'Ne', name: 'Neemias', cat: 'cat-history' },
-        { abbr: 'Et', name: 'Ester', cat: 'cat-history' },
-        // Poéticos
-        { abbr: 'Jó', name: 'Jó', cat: 'cat-poetry' },
-        { abbr: 'Sl', name: 'Salmos', cat: 'cat-poetry' },
-        { abbr: 'Pv', name: 'Provérbios', cat: 'cat-poetry' },
-        { abbr: 'Ec', name: 'Eclesiastes', cat: 'cat-poetry' },
-        { abbr: 'Ct', name: 'Cantares', cat: 'cat-poetry' },
-        // Profetas Maiores
-        { abbr: 'Is', name: 'Isaías', cat: 'cat-prophets' },
-        { abbr: 'Jr', name: 'Jeremias', cat: 'cat-prophets' },
-        { abbr: 'Lm', name: 'Lamentações', cat: 'cat-prophets' },
-        { abbr: 'Ez', name: 'Ezequiel', cat: 'cat-prophets' },
-        { abbr: 'Dn', name: 'Daniel', cat: 'cat-prophets' },
-        // Profetas Menores
-        { abbr: 'Os', name: 'Oséias', cat: 'cat-prophets' },
-        { abbr: 'Jl', name: 'Joel', cat: 'cat-prophets' },
-        { abbr: 'Am', name: 'Amós', cat: 'cat-prophets' },
-        { abbr: 'Ob', name: 'Obadias', cat: 'cat-prophets' },
-        { abbr: 'Jn', name: 'Jonas', cat: 'cat-prophets' },
-        { abbr: 'Mq', name: 'Miquéias', cat: 'cat-prophets' },
-        { abbr: 'Na', name: 'Naum', cat: 'cat-prophets' },
-        { abbr: 'Hc', name: 'Habacuque', cat: 'cat-prophets' },
-        { abbr: 'Sf', name: 'Sofonias', cat: 'cat-prophets' },
-        { abbr: 'Ag', name: 'Ageu', cat: 'cat-prophets' },
-        { abbr: 'Zc', name: 'Zacarias', cat: 'cat-prophets' },
-        { abbr: 'Ml', name: 'Malaquias', cat: 'cat-prophets' },
-        // Evangelhos
-        { abbr: 'Mt', name: 'Mateus', cat: 'cat-gospels' },
-        { abbr: 'Mc', name: 'Marcos', cat: 'cat-gospels' },
-        { abbr: 'Lc', name: 'Lucas', cat: 'cat-gospels' },
-        { abbr: 'Jo', name: 'João', cat: 'cat-gospels' },
-        // Histórico NT
-        { abbr: 'At', name: 'Atos', cat: 'cat-history-nt' },
-        // Cartas Paulo
-        { abbr: 'Rm', name: 'Romanos', cat: 'cat-paul' },
-        { abbr: '1Co', name: '1 Coríntios', cat: 'cat-paul' },
-        { abbr: '2Co', name: '2 Coríntios', cat: 'cat-paul' },
-        { abbr: 'Gl', name: 'Gálatas', cat: 'cat-paul' },
-        { abbr: 'Ef', name: 'Efésios', cat: 'cat-paul' },
-        { abbr: 'Fp', name: 'Filipenses', cat: 'cat-paul' },
-        { abbr: 'Cl', name: 'Colossenses', cat: 'cat-paul' },
-        { abbr: '1Ts', name: '1 Tessalonicenses', cat: 'cat-paul' },
-        { abbr: '2Ts', name: '2 Tessalonicenses', cat: 'cat-paul' },
-        { abbr: '1Tm', name: '1 Timóteo', cat: 'cat-paul' },
-        { abbr: '2Tm', name: '2 Timóteo', cat: 'cat-paul' },
-        { abbr: 'Tt', name: 'Tito', cat: 'cat-paul' },
-        { abbr: 'Fm', name: 'Filemom', cat: 'cat-paul' },
-        // Cartas Gerais
-        { abbr: 'Hb', name: 'Hebreus', cat: 'cat-general' },
-        { abbr: 'Tg', name: 'Tiago', cat: 'cat-general' },
-        { abbr: '1Pe', name: '1 Pedro', cat: 'cat-general' },
-        { abbr: '2Pe', name: '2 Pedro', cat: 'cat-general' },
-        { abbr: '1Jo', name: '1 João', cat: 'cat-general' },
-        { abbr: '2Jo', name: '2 João', cat: 'cat-general' },
-        { abbr: '3Jo', name: '3 João', cat: 'cat-general' },
-        { abbr: 'Jd', name: 'Judas', cat: 'cat-general' },
-        // Profético NT
-        { abbr: 'Ap', name: 'Apocalipse', cat: 'cat-apoc' }
+        { abbr: 'Gn', name: 'Gênesis', cat: 'cat-law' }, { abbr: 'Êx', name: 'Êxodo', cat: 'cat-law' },
+        { abbr: 'Lv', name: 'Levítico', cat: 'cat-law' }, { abbr: 'Nm', name: 'Números', cat: 'cat-law' },
+        { abbr: 'Dt', name: 'Deuteronômio', cat: 'cat-law' }, { abbr: 'Js', name: 'Josué', cat: 'cat-history' },
+        { abbr: 'Jz', name: 'Juízes', cat: 'cat-history' }, { abbr: 'Rt', name: 'Rute', cat: 'cat-history' },
+        { abbr: '1Sm', name: '1 Samuel', cat: 'cat-history' }, { abbr: '2Sm', name: '2 Samuel', cat: 'cat-history' },
+        { abbr: '1Rs', name: '1 Reis', cat: 'cat-history' }, { abbr: '2Rs', name: '2 Reis', cat: 'cat-history' },
+        { abbr: '1Cr', name: '1 Crônicas', cat: 'cat-history' }, { abbr: '2Cr', name: '2 Crônicas', cat: 'cat-history' },
+        { abbr: 'Ed', name: 'Esdras', cat: 'cat-history' }, { abbr: 'Ne', name: 'Neemias', cat: 'cat-history' },
+        { abbr: 'Et', name: 'Ester', cat: 'cat-history' }, { abbr: 'Jó', name: 'Jó', cat: 'cat-poetry' },
+        { abbr: 'Sl', name: 'Salmos', cat: 'cat-poetry' }, { abbr: 'Pv', name: 'Provérbios', cat: 'cat-poetry' },
+        { abbr: 'Ec', name: 'Eclesiastes', cat: 'cat-poetry' }, { abbr: 'Ct', name: 'Cantares', cat: 'cat-poetry' },
+        { abbr: 'Is', name: 'Isaías', cat: 'cat-prophets' }, { abbr: 'Jr', name: 'Jeremias', cat: 'cat-prophets' },
+        { abbr: 'Lm', name: 'Lamentações', cat: 'cat-prophets' }, { abbr: 'Ez', name: 'Ezequiel', cat: 'cat-prophets' },
+        { abbr: 'Dn', name: 'Daniel', cat: 'cat-prophets' }, { abbr: 'Os', name: 'Oséias', cat: 'cat-prophets' },
+        { abbr: 'Jl', name: 'Joel', cat: 'cat-prophets' }, { abbr: 'Am', name: 'Amós', cat: 'cat-prophets' },
+        { abbr: 'Ob', name: 'Obadias', cat: 'cat-prophets' }, { abbr: 'Jn', name: 'Jonas', cat: 'cat-prophets' },
+        { abbr: 'Mq', name: 'Miquéias', cat: 'cat-prophets' }, { abbr: 'Na', name: 'Naum', cat: 'cat-prophets' },
+        { abbr: 'Hc', name: 'Habacuque', cat: 'cat-prophets' }, { abbr: 'Sf', name: 'Sofonias', cat: 'cat-prophets' },
+        { abbr: 'Ag', name: 'Ageu', cat: 'cat-prophets' }, { abbr: 'Zc', name: 'Zacarias', cat: 'cat-prophets' },
+        { abbr: 'Ml', name: 'Malaquias', cat: 'cat-prophets' }, { abbr: 'Mt', name: 'Mateus', cat: 'cat-gospels' },
+        { abbr: 'Mc', name: 'Marcos', cat: 'cat-gospels' }, { abbr: 'Lc', name: 'Lucas', cat: 'cat-gospels' },
+        { abbr: 'Jo', name: 'João', cat: 'cat-gospels' }, { abbr: 'At', name: 'Atos', cat: 'cat-history-nt' },
+        { abbr: 'Rm', name: 'Romanos', cat: 'cat-paul' }, { abbr: '1Co', name: '1 Coríntios', cat: 'cat-paul' },
+        { abbr: '2Co', name: '2 Coríntios', cat: 'cat-paul' }, { abbr: 'Gl', name: 'Gálatas', cat: 'cat-paul' },
+        { abbr: 'Ef', name: 'Efésios', cat: 'cat-paul' }, { abbr: 'Fp', name: 'Filipenses', cat: 'cat-paul' },
+        { abbr: 'Cl', name: 'Colossenses', cat: 'cat-paul' }, { abbr: '1Ts', name: '1 Tessalonicenses', cat: 'cat-paul' },
+        { abbr: '2Ts', name: '2 Tessalonicenses', cat: 'cat-paul' }, { abbr: '1Tm', name: '1 Timóteo', cat: 'cat-paul' },
+        { abbr: '2Tm', name: '2 Timóteo', cat: 'cat-paul' }, { abbr: 'Tt', name: 'Tito', cat: 'cat-paul' },
+        { abbr: 'Fm', name: 'Filemom', cat: 'cat-paul' }, { abbr: 'Hb', name: 'Hebreus', cat: 'cat-general' },
+        { abbr: 'Tg', name: 'Tiago', cat: 'cat-general' }, { abbr: '1Pe', name: '1 Pedro', cat: 'cat-general' },
+        { abbr: '2Pe', name: '2 Pedro', cat: 'cat-general' }, { abbr: '1Jo', name: '1 João', cat: 'cat-general' },
+        { abbr: '2Jo', name: '2 João', cat: 'cat-general' }, { abbr: '3Jo', name: '3 João', cat: 'cat-general' },
+        { abbr: 'Jd', name: 'Judas', cat: 'cat-general' }, { abbr: 'Ap', name: 'Apocalipse', cat: 'cat-apoc' }
     ];
 
-    // Variáveis de Estado
     let dbVerses = [];
     let dbSubtitles = [];
     let gameQueue = [];
@@ -234,20 +235,17 @@
     let sessionStats = { correct: 0, wrong: 0, total: 0 };
     let subtitlePerformance = {}; 
 
-    // --- INICIALIZAÇÃO ---
     window.onload = function() {
         const grid = document.getElementById('book-grid');
         bibleBooks.forEach(book => {
             const btn = document.createElement('button');
             btn.className = `book-btn ${book.cat}`;
             btn.innerText = book.abbr;
-            btn.title = book.name; // Tooltip com nome completo
             btn.onclick = () => iniciarEstudo(book.name);
             grid.appendChild(btn);
         });
     }
 
-    // --- FUNÇÕES UTILITÁRIAS ---
     function cleanText(text) {
         if (!text) return "";
         let str = String(text);
@@ -260,64 +258,54 @@
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
     }
 
-    async function fetchExcel(url) {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Arquivo não encontrado: ${url}`);
+    async function fetchExcel(filename) {
+        // Encode URI Component garante que acentos na URL sejam lidos corretamente pelo navegador
+        const safeUrl = encodeURI(filename);
+        const response = await fetch(safeUrl);
+        if (!response.ok) throw new Error(`Não foi possível carregar: ${filename}`);
         const arrayBuffer = await response.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         return XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
     }
 
-    // --- LÓGICA DO JOGO ---
     async function iniciarEstudo(bookName) {
         const loading = document.getElementById('loading');
-        const grid = document.getElementById('book-grid');
+        const gridContainer = document.getElementById('grid-container');
         
         loading.style.display = 'block';
-        grid.style.opacity = '0.3'; // Desabilita visualmente
-        grid.style.pointerEvents = 'none'; // Desabilita cliques
+        gridContainer.style.display = 'none';
 
         try {
             if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
             if (dbVerses.length === 0) dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
 
-            // 1. Encontrar o ID e dados do Livro
             const targetBookData = dbSubtitles.filter(r => normalize(r['Livro']) === normalize(bookName));
             
-            if (targetBookData.length === 0) {
-                // Tenta buscar "1 Reis" se o usuário clicou e o Excel tem "1Reis" ou algo assim
-                // Mas o normalize deve resolver a maioria dos casos de acentuação
-                throw new Error(`Livro "${bookName}" não encontrado na planilha de subtítulos. Verifique a grafia no Excel.`);
-            }
+            if (targetBookData.length === 0) throw new Error(`O livro "${bookName}" não foi encontrado na planilha 'Subtítulos.xlsx'.`);
 
             const bookCode = targetBookData[0]['Cód do livro'];
             const bookNameOfficial = targetBookData[0]['Livro'];
 
-            // 2. Filtrar Versículos
             const bookVersesRaw = dbVerses.filter(r => r['book_number'] == bookCode);
 
-            if (bookVersesRaw.length === 0) throw new Error(`Versículos não encontrados para o código ${bookCode} (Livro: ${bookNameOfficial})`);
+            if (bookVersesRaw.length === 0) throw new Error(`Versículos não encontrados para o código ${bookCode}.`);
 
             prepararLogica(bookNameOfficial, targetBookData, bookVersesRaw);
 
         } catch (error) {
             console.error(error);
             alert("Erro: " + error.message);
-            // Reabilita grade em caso de erro
             loading.style.display = 'none';
-            grid.style.opacity = '1';
-            grid.style.pointerEvents = 'auto';
+            gridContainer.style.display = 'block';
         }
     }
 
     function prepararLogica(bookName, rawSubtitles, rawVerses) {
-        // Ordenar subtítulos
         currentSubtitleList = rawSubtitles.map(s => ({
             cap: parseInt(s['Capítulo']),
             ver: parseInt(s['Versículo']),
-            text: cleanText(s['Subtítulo']),
-            fullText: s['Subtítulo']
+            text: cleanText(s['Subtítulo'])
         })).sort((a, b) => (a.cap - b.cap) || (a.ver - b.ver));
 
         subtitlePerformance = {};
@@ -325,14 +313,12 @@
 
         gameQueue = [];
 
-        // Algoritmo de mapeamento (Versículo -> Subtítulo)
         rawVerses.forEach(v => {
             const vCap = parseInt(v['chapter']);
             const vVer = parseInt(v['verse']);
             const vText = cleanText(v['text']);
-
             let correctSub = null;
-            // Busca o subtítulo imediatamente anterior ou igual ao versículo atual
+            
             for (let i = 0; i < currentSubtitleList.length; i++) {
                 const sub = currentSubtitleList[i];
                 if (sub.cap > vCap || (sub.cap === vCap && sub.ver > vVer)) break;
@@ -340,34 +326,22 @@
             }
 
             if (correctSub) {
-                gameQueue.push({
-                    text: vText,
-                    ref: `${vCap}:${vVer}`, // Ref simplificada
-                    answer: correctSub
-                });
+                gameQueue.push({ text: vText, ref: `${vCap}:${vVer}`, answer: correctSub });
             }
         });
 
         if (gameQueue.length === 0) {
-            alert("Erro de mapeamento: Nenhum versículo foi associado a um subtítulo.");
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('book-grid').style.opacity = '1';
-            document.getElementById('book-grid').style.pointerEvents = 'auto';
+            alert("Erro: Nenhum versículo associado.");
+            location.reload();
             return;
         }
 
         shuffleArray(gameQueue);
-        
-        sessionStats.total = gameQueue.length;
-        sessionStats.correct = 0;
-        sessionStats.wrong = 0;
+        sessionStats = { correct: 0, wrong: 0, total: gameQueue.length };
 
-        // Atualiza UI
         document.getElementById('current-book-name').innerText = bookName;
-        document.getElementById('loading').style.display = 'none';
         document.getElementById('setup-area').style.display = 'none';
         document.getElementById('game-area').style.display = 'block';
-
         loadCard();
     }
 
@@ -375,9 +349,10 @@
         updateStats();
         const feedback = document.getElementById('feedback');
         feedback.innerText = "";
+        feedback.className = "feedback-msg"; 
         
         if (gameQueue.length === 0) {
-            alert("Parabéns! Você finalizou o livro.");
+            alert("Livro finalizado!");
             toggleReviewMode();
             return;
         }
@@ -385,27 +360,23 @@
         currentVerse = gameQueue[0];
         document.getElementById('verse-text').innerText = currentVerse.text;
         document.getElementById('verse-ref').innerText = currentVerse.ref;
-
         generateOptions(currentVerse.answer);
     }
 
     function generateOptions(correctAnswer) {
         const container = document.getElementById('options-container');
         container.innerHTML = '';
+        container.style.pointerEvents = 'auto'; // Reabilita cliques
 
-        let allOptions = currentSubtitleList.map(s => s.text);
-        allOptions = [...new Set(allOptions)]; // Remove duplicados
-
-        // Seleciona opções para mostrar (tentar mostrar todas, mas limitar se houver muitas para não quebrar UI móvel)
-        // Se houver mais de 8 subtítulos, vamos pegar a correta + 5 aleatórias para não poluir
-        // Se o usuário quiser "todas embaralhadas", use a lógica abaixo comentada.
-        
+        let allOptions = [...new Set(currentSubtitleList.map(s => s.text))];
         let displayOptions;
-        if (allOptions.length > 10) {
-            // Modo resumido para livros grandes (Salmos tem centenas)
-            let wrongOptions = allOptions.filter(o => o !== correctAnswer);
-            shuffleArray(wrongOptions);
-            displayOptions = [correctAnswer, ...wrongOptions.slice(0, 5)]; // Correta + 5 erradas
+
+        // Lógica: Se houver muitas opções, pega a correta + 3 erradas
+        // Em telas pequenas, muitas opções poluem
+        if (allOptions.length > 6) {
+            let wrong = allOptions.filter(o => o !== correctAnswer);
+            shuffleArray(wrong);
+            displayOptions = [correctAnswer, ...wrong.slice(0, 3)];
         } else {
             displayOptions = [...allOptions];
         }
@@ -413,51 +384,40 @@
         shuffleArray(displayOptions);
 
         displayOptions.forEach(optText => {
-            const btn = document.createElement('div'); // Div agindo como botão para melhor controle de layout
+            const btn = document.createElement('div');
             btn.className = 'option-btn';
             btn.innerText = optText;
-            btn.onclick = () => {
-                if(btn.style.pointerEvents === 'none') return; // Evita clique duplo
-                checkAnswer(btn, optText, correctAnswer);
-            };
+            btn.onclick = () => checkAnswer(btn, optText, correctAnswer);
             container.appendChild(btn);
         });
     }
 
     function checkAnswer(btn, selected, correct) {
-        // Bloqueia todos
-        const allBtns = document.querySelectorAll('.option-btn');
-        allBtns.forEach(b => b.style.pointerEvents = 'none');
-
+        document.getElementById('options-container').style.pointerEvents = 'none'; // Bloqueia tudo
         const feedback = document.getElementById('feedback');
 
         if (selected === correct) {
             btn.classList.add('correct');
             feedback.innerText = "Correto!";
-            feedback.style.color = "#27ae60";
+            feedback.style.color = "#4caf50";
             sessionStats.correct++;
-
             if (subtitlePerformance[correct] !== 'wrong') subtitlePerformance[correct] = 'correct';
-
             gameQueue.shift();
             setTimeout(loadCard, 1000);
         } else {
             btn.classList.add('wrong');
             feedback.innerText = `Resposta: ${correct}`;
-            feedback.style.color = "#d93025";
+            feedback.style.color = "#f44336";
             sessionStats.wrong++;
-
             subtitlePerformance[correct] = 'wrong';
-
-            // Mostra o correto
-            allBtns.forEach(b => {
-                if (b.innerText === correct) b.classList.add('correct');
+            
+            // Destaca correta
+            document.querySelectorAll('.option-btn').forEach(b => {
+                if(b.innerText === correct) b.classList.add('correct');
             });
 
-            // Reinsere no fim da fila
-            const retryItem = gameQueue.shift();
-            gameQueue.push(retryItem);
-
+            const retry = gameQueue.shift();
+            gameQueue.push(retry);
             setTimeout(loadCard, 2500);
         }
     }
@@ -480,35 +440,20 @@
             currentSubtitleList.forEach(sub => {
                 const li = document.createElement('li');
                 li.className = 'review-item';
-                
-                let color = '#5f6368'; // Pendente
-                if (subtitlePerformance[sub.text] === 'correct') color = '#1e8e3e';
-                if (subtitlePerformance[sub.text] === 'wrong') color = '#d93025';
+                let color = '#555';
+                if (subtitlePerformance[sub.text] === 'correct') color = '#2e7d32';
+                if (subtitlePerformance[sub.text] === 'wrong') color = '#c62828';
 
-                li.innerHTML = `
-                    <div class="dot" style="background-color: ${color}"></div>
-                    <div><strong>${sub.cap}:${sub.ver}</strong> - ${sub.text}</div>
-                `;
+                li.innerHTML = `<div class="dot" style="background-color: ${color}"></div><div><strong>${sub.cap}:${sub.ver}</strong> - ${sub.text}</div>`;
                 list.appendChild(li);
             });
-
             gameDiv.style.display = 'none';
             reviewDiv.style.display = 'block';
         }
     }
 
-    function resetGame() {
-        location.reload(); // Maneira mais segura de limpar memória e voltar ao menu
-    }
-
-    function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-    }
+    function resetGame() { location.reload(); }
+    function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
 </script>
-
 </body>
 </html>
