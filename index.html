@@ -78,10 +78,8 @@
         .handle { color: #666; margin-right: 15px; font-size: 1.2rem; cursor: grab; }
         .item-text { flex-grow: 1; font-size: 0.95rem; }
         
-        /* Feedback Ordenação */
         .pos-correct { border-left: 5px solid #27ae60; background: rgba(39, 174, 96, 0.1); }
         .pos-wrong { border-left: 5px solid #c0392b; background: rgba(192, 57, 43, 0.1); }
-        
         .ghost-class { opacity: 0.5; background: #444; }
 
         /* REVIEW AREA */
@@ -262,7 +260,6 @@
 
         try {
             if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
-            // Só carrega versículos se for modo Flashcards
             if (mode === 'flashcards' && dbVerses.length === 0) dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
 
             if (mode === 'flashcards') {
@@ -291,24 +288,47 @@
     function cleanText(text) {
         return String(text || "").replace(/<[^>]*>/g, '').replace(/[<>\/]/g, '').trim();
     }
+    
     function normalize(str) {
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
     }
 
-    // --- PREPARAÇÃO DE DADOS ---
+    // --- FILTRAGEM E HIGIENIZAÇÃO DE DADOS ---
+    function isValidSubtitle(subText) {
+        if (!subText) return false;
+        const str = String(subText).trim();
+        
+        // Regra 1: Se for muito curto (ex: "1", ".", "Oi"), ignora.
+        if (str.length < 3) return false;
+
+        // Regra 2: Se contiver APENAS números, espaços, traços ou pontos (ex: "720 3-16", "123", "3-5")
+        // O Regex ^[\d\s\-\.]+$ detecta isso.
+        if (/^[\d\s\-\.]+$/.test(str)) return false;
+
+        return true;
+    }
+
     function getBookData() {
-        const target = dbSubtitles.filter(r => normalize(r['Livro']) === normalize(selectedBookName));
-        if (target.length === 0) throw new Error("Livro não encontrado na planilha de subtítulos.");
+        // Filtragem com limpeza rígida
+        const target = dbSubtitles.filter(r => {
+            // Verifica se é o livro certo
+            if (normalize(r['Livro']) !== normalize(selectedBookName)) return false;
+            
+            // Aplica higienização no texto do subtítulo
+            return isValidSubtitle(r['Subtítulo']);
+        });
+
+        if (target.length === 0) throw new Error("Livro não encontrado na planilha de subtítulos (ou sem subtítulos válidos).");
         
         // Gera lista ordenada
         const list = target.map((s, idx) => ({
-            id: idx, // ID original para checagem de ordem
+            id: idx,
             cap: parseInt(s['Capítulo']),
             ver: parseInt(s['Versículo']),
             text: cleanText(s['Subtítulo'])
         })).sort((a, b) => (a.cap - b.cap) || (a.ver - b.ver));
         
-        // Reindexa IDs baseados na ordem cronológica correta
+        // Reindexa IDs
         list.forEach((item, index) => item.realIndex = index);
         
         return { raw: target, sortedList: list, code: target[0]['Cód do livro'] };
@@ -344,7 +364,6 @@
         shuffleArray(gameQueue);
         sessionStats = { correct: 0, wrong: 0, total: gameQueue.length };
 
-        // UI
         document.querySelectorAll('.lbl-book-name').forEach(el => el.innerText = selectedBookName);
         document.getElementById('game-flashcards').classList.remove('hidden');
         loadFlashcard();
@@ -412,13 +431,8 @@
     // --- LÓGICA: ORDENAÇÃO ---
     function startOrderingGame() {
         const data = getBookData();
-        // Remove duplicados pelo texto para não confundir o usuário (ex: se houver subtitulos iguais)
-        // Mas mantendo a referência do indice original
-        
-        // Estratégia: Usar todos os itens da lista ordenada.
         orderingListOriginal = [...data.sortedList]; 
         
-        // Cria lista para embaralhar
         let shuffled = [...orderingListOriginal];
         shuffleArray(shuffled);
 
@@ -428,7 +442,7 @@
         shuffled.forEach(item => {
             const li = document.createElement('li');
             li.className = 'sortable-item';
-            li.setAttribute('data-real-index', item.realIndex); // Guarda a posição correta
+            li.setAttribute('data-real-index', item.realIndex); 
             li.innerHTML = `<span class="handle">☰</span><span class="item-text">${item.text}</span>`;
             listEl.appendChild(li);
         });
@@ -437,10 +451,9 @@
         document.getElementById('game-ordering').classList.remove('hidden');
         document.getElementById('order-feedback').innerText = "";
 
-        // Inicializa Sortable
         if(sortableInstance) sortableInstance.destroy();
         sortableInstance = new Sortable(listEl, {
-            handle: '.handle', // Apenas o ícone arrasta (melhor pra mobile scrolling)
+            handle: '.handle', 
             animation: 150,
             ghostClass: 'ghost-class'
         });
@@ -453,10 +466,7 @@
 
         listItems.forEach((li, domIndex) => {
             const correctIndex = parseInt(li.getAttribute('data-real-index'));
-            
-            // Remove classes anteriores
             li.classList.remove('pos-correct', 'pos-wrong');
-
             if (correctIndex === domIndex) {
                 li.classList.add('pos-correct');
             } else {
@@ -470,7 +480,6 @@
         if (allCorrect) {
             fb.innerText = "Perfeito! Todos os subtítulos estão na ordem correta.";
             fb.style.color = "#27ae60";
-            // Confetti ou algo visual seria legal aqui
         } else {
             fb.innerText = `Você tem ${errors} itens fora de posição.`;
             fb.style.color = "#c0392b";
@@ -479,8 +488,6 @@
 
     function showCorrectOrder() {
         if(!confirm("Tem certeza? Isso irá reorganizar a lista para a resposta correta.")) return;
-        
-        // Re-renderiza na ordem certa
         const listEl = document.getElementById('sortable-list');
         listEl.innerHTML = "";
         orderingListOriginal.forEach(item => {
