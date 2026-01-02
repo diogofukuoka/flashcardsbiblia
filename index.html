@@ -278,7 +278,9 @@
 
     // --- LEITURA EXCEL ---
     async function fetchExcel(filename) {
-        const response = await fetch(encodeURI(filename));
+        // Cache Busting: Adiciona um timestamp para forçar o navegador a baixar a versão nova
+        const url = encodeURI(filename) + "?t=" + new Date().getTime();
+        const response = await fetch(url);
         if (!response.ok) throw new Error(`Arquivo não encontrado: ${filename}`);
         const ab = await response.arrayBuffer();
         const wb = XLSX.read(ab, { type: 'array' });
@@ -293,17 +295,22 @@
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
     }
 
-    // --- FILTRAGEM E HIGIENIZAÇÃO DE DADOS ---
-    function isValidSubtitle(subText) {
+    // --- FILTRAGEM E HIGIENIZAÇÃO DE DADOS (REGRA DE OURO) ---
+    function isValidSubtitle(subText, cap, ver) {
         if (!subText) return false;
+        
+        // Verifica se Capítulo e Versículo são números válidos
+        if (isNaN(cap) || isNaN(ver)) return false;
+
         const str = String(subText).trim();
         
-        // Regra 1: Se for muito curto (ex: "1", ".", "Oi"), ignora.
+        // Regra 1: Muito curto
         if (str.length < 3) return false;
 
-        // Regra 2: Se contiver APENAS números, espaços, traços ou pontos (ex: "720 3-16", "123", "3-5")
-        // O Regex ^[\d\s\-\.]+$ detecta isso.
-        if (/^[\d\s\-\.]+$/.test(str)) return false;
+        // Regra 2 (A MAIS IMPORTANTE): Deve conter pelo menos UMA LETRA.
+        // Se só tiver números, traços e espaços (ex: "720 3-16"), retorna falso.
+        const hasLetters = /[a-zA-Z\u00C0-\u00FF]/.test(str);
+        if (!hasLetters) return false;
 
         return true;
     }
@@ -311,14 +318,14 @@
     function getBookData() {
         // Filtragem com limpeza rígida
         const target = dbSubtitles.filter(r => {
-            // Verifica se é o livro certo
+            // Verifica nome do livro
             if (normalize(r['Livro']) !== normalize(selectedBookName)) return false;
             
-            // Aplica higienização no texto do subtítulo
-            return isValidSubtitle(r['Subtítulo']);
+            // Aplica higienização
+            return isValidSubtitle(r['Subtítulo'], r['Capítulo'], r['Versículo']);
         });
 
-        if (target.length === 0) throw new Error("Livro não encontrado na planilha de subtítulos (ou sem subtítulos válidos).");
+        if (target.length === 0) throw new Error("Livro não encontrado ou sem subtítulos válidos.");
         
         // Gera lista ordenada
         const list = target.map((s, idx) => ({
