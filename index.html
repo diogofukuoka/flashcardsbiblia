@@ -16,20 +16,30 @@
             margin: 0; 
             padding: 15px; 
             color: var(--text); 
-            padding-bottom: 50px; /* Espaço para scroll no mobile */
+            padding-bottom: 50px; 
         }
 
         .container { max-width: 1000px; margin: 0 auto; }
         
-        h1 { text-align: center; color: #fff; margin-bottom: 20px; font-weight: 300; font-size: 1.8rem; }
+        h1 { text-align: center; color: #fff; margin-bottom: 10px; font-weight: 300; font-size: 1.8rem; }
         
-        /* GRID DE LIVROS RESPONSIVA */
+        /* SEPARADORES VT / NT */
+        .section-title {
+            color: #888;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 30px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        /* GRID DE LIVROS */
         .book-grid {
             display: grid;
-            /* Mobile: min 55px (5 colunas), Tablet/PC: min 70px */
             grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); 
             gap: 8px;
-            margin-bottom: 30px;
         }
 
         .book-btn {
@@ -37,7 +47,7 @@
             border: none;
             border-radius: 12px;
             font-weight: 700;
-            font-size: 14px; /* Legível no mobile */
+            font-size: 14px; 
             color: rgba(255,255,255,0.95);
             cursor: pointer;
             display: flex;
@@ -46,7 +56,6 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             transition: transform 0.1s;
         }
-
         .book-btn:active { transform: scale(0.95); }
 
         /* CORES DAS CATEGORIAS */
@@ -88,17 +97,33 @@
             min-height: 30px; margin: 10px 0; padding: 10px; border-radius: 8px;
         }
 
-        /* OPÇÕES RESPONSIVAS */
+        /* OPÇÕES COM SCROLL */
+        .options-container-scroll {
+            max-height: 45vh; /* Ocupa no máximo 45% da altura da tela */
+            overflow-y: auto; /* Adiciona barra de rolagem se precisar */
+            padding-right: 5px; /* Espaço para o scroll */
+            margin-bottom: 20px;
+            
+            /* Estilização da barra de rolagem fina */
+            scrollbar-width: thin;
+            scrollbar-color: #555 #1e1e1e;
+        }
+        
+        /* Webkit scrollbar (Chrome/Safari) */
+        .options-container-scroll::-webkit-scrollbar { width: 8px; }
+        .options-container-scroll::-webkit-scrollbar-track { background: #1e1e1e; }
+        .options-container-scroll::-webkit-scrollbar-thumb { background-color: #555; border-radius: 10px; }
+
         .options-grid { 
             display: grid; 
-            grid-template-columns: 1fr; /* Mobile: 1 coluna (lista vertical) */
-            gap: 12px; 
+            grid-template-columns: 1fr; 
+            gap: 10px; 
         }
 
         .option-btn {
             background: #2c2c2c; border: 1px solid var(--border); color: #e0e0e0;
-            padding: 18px; border-radius: 12px; text-align: left; cursor: pointer;
-            font-size: 1rem; line-height: 1.4; touch-action: manipulation; /* Melhora toque no mobile */
+            padding: 15px; border-radius: 10px; text-align: left; cursor: pointer;
+            font-size: 0.95rem; line-height: 1.3; touch-action: manipulation;
         }
         
         .correct { background-color: #1b5e20 !important; border-color: #2e7d32 !important; color: white !important; }
@@ -113,7 +138,7 @@
         .dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 15px; flex-shrink: 0; }
 
         /* BOTÕES DE AÇÃO */
-        .action-container { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px;}
+        .action-container { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px;}
         button.action-btn {
             background: transparent; border: 1px solid #666; color: #ccc;
             padding: 12px 24px; border-radius: 50px; cursor: pointer; font-size: 0.9rem;
@@ -121,11 +146,10 @@
         }
         button.action-btn:active { background: rgba(255,255,255,0.1); }
 
-        /* MEDIA QUERIES (Tablets e Desktop) */
         @media (min-width: 768px) {
             .book-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; }
             .book-btn { font-size: 18px; border-radius: 16px; }
-            .options-grid { grid-template-columns: repeat(2, 1fr); } /* 2 colunas no PC/Tablet */
+            .options-grid { grid-template-columns: repeat(2, 1fr); }
             .verse-text { font-size: 1.6rem; }
             .container { padding: 30px; }
         }
@@ -146,8 +170,15 @@
         </div>
         
         <div id="grid-container">
-            <p style="text-align:center; color:#888; margin-bottom:20px;">Toque em um livro para começar:</p>
-            <div id="book-grid" class="book-grid"></div>
+            <p style="text-align:center; color:#888; margin-bottom:10px;">Toque em um livro para começar:</p>
+            
+            <!-- ANTIGO TESTAMENTO -->
+            <div class="section-title">Antigo Testamento</div>
+            <div id="grid-vt" class="book-grid"></div>
+
+            <!-- NOVO TESTAMENTO -->
+            <div class="section-title">Novo Testamento</div>
+            <div id="grid-nt" class="book-grid"></div>
         </div>
     </div>
 
@@ -166,7 +197,12 @@
 
         <div id="feedback" class="feedback-msg"></div>
 
-        <div id="options-container" class="options-grid"></div>
+        <p style="text-align:center; color:#666; font-size:0.8em; margin:0 0 5px 0;">Selecione o subtítulo correto:</p>
+        
+        <!-- Container com Scroll para suportar MUITAS opções -->
+        <div class="options-container-scroll">
+            <div id="options-container" class="options-grid"></div>
+        </div>
 
         <div class="action-container">
             <button class="action-btn" onclick="toggleReviewMode()">Ver Estrutura</button>
@@ -185,13 +221,12 @@
 </div>
 
 <script>
-    // --- CORREÇÃO DOS NOMES EXATOS ---
-    // Devem ser idênticos aos do GitHub (respeitando maiúsculas e acentos)
     const ARQUIVO_BIBLIA = 'Versículos.xlsx'; 
     const ARQUIVO_SUBTITULOS = 'Subtítulos.xlsx';
 
-    // Lista de livros
+    // Lista de livros COMPLETA e na ordem
     const bibleBooks = [
+        // ANTIGO TESTAMENTO (0 a 38)
         { abbr: 'Gn', name: 'Gênesis', cat: 'cat-law' }, { abbr: 'Êx', name: 'Êxodo', cat: 'cat-law' },
         { abbr: 'Lv', name: 'Levítico', cat: 'cat-law' }, { abbr: 'Nm', name: 'Números', cat: 'cat-law' },
         { abbr: 'Dt', name: 'Deuteronômio', cat: 'cat-law' }, { abbr: 'Js', name: 'Josué', cat: 'cat-history' },
@@ -211,7 +246,10 @@
         { abbr: 'Mq', name: 'Miquéias', cat: 'cat-prophets' }, { abbr: 'Na', name: 'Naum', cat: 'cat-prophets' },
         { abbr: 'Hc', name: 'Habacuque', cat: 'cat-prophets' }, { abbr: 'Sf', name: 'Sofonias', cat: 'cat-prophets' },
         { abbr: 'Ag', name: 'Ageu', cat: 'cat-prophets' }, { abbr: 'Zc', name: 'Zacarias', cat: 'cat-prophets' },
-        { abbr: 'Ml', name: 'Malaquias', cat: 'cat-prophets' }, { abbr: 'Mt', name: 'Mateus', cat: 'cat-gospels' },
+        { abbr: 'Ml', name: 'Malaquias', cat: 'cat-prophets' }, 
+        
+        // NOVO TESTAMENTO (39 em diante - Começa em Mateus)
+        { abbr: 'Mt', name: 'Mateus', cat: 'cat-gospels' },
         { abbr: 'Mc', name: 'Marcos', cat: 'cat-gospels' }, { abbr: 'Lc', name: 'Lucas', cat: 'cat-gospels' },
         { abbr: 'Jo', name: 'João', cat: 'cat-gospels' }, { abbr: 'At', name: 'Atos', cat: 'cat-history-nt' },
         { abbr: 'Rm', name: 'Romanos', cat: 'cat-paul' }, { abbr: '1Co', name: '1 Coríntios', cat: 'cat-paul' },
@@ -236,13 +274,21 @@
     let subtitlePerformance = {}; 
 
     window.onload = function() {
-        const grid = document.getElementById('book-grid');
-        bibleBooks.forEach(book => {
+        const gridVT = document.getElementById('grid-vt');
+        const gridNT = document.getElementById('grid-nt');
+
+        bibleBooks.forEach((book, index) => {
             const btn = document.createElement('button');
             btn.className = `book-btn ${book.cat}`;
             btn.innerText = book.abbr;
             btn.onclick = () => iniciarEstudo(book.name);
-            grid.appendChild(btn);
+
+            // Separação VT vs NT (Mateus é o indice 39)
+            if (index < 39) {
+                gridVT.appendChild(btn);
+            } else {
+                gridNT.appendChild(btn);
+            }
         });
     }
 
@@ -259,7 +305,6 @@
     }
 
     async function fetchExcel(filename) {
-        // Encode URI Component garante que acentos na URL sejam lidos corretamente pelo navegador
         const safeUrl = encodeURI(filename);
         const response = await fetch(safeUrl);
         if (!response.ok) throw new Error(`Não foi possível carregar: ${filename}`);
@@ -275,6 +320,7 @@
         
         loading.style.display = 'block';
         gridContainer.style.display = 'none';
+        document.getElementById('main-title').style.display = 'none'; // Esconde título na tela do jogo
 
         try {
             if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
@@ -298,6 +344,7 @@
             alert("Erro: " + error.message);
             loading.style.display = 'none';
             gridContainer.style.display = 'block';
+            document.getElementById('main-title').style.display = 'block';
         }
     }
 
@@ -351,6 +398,9 @@
         feedback.innerText = "";
         feedback.className = "feedback-msg"; 
         
+        // Scroll para o topo das opções a cada nova carta
+        document.querySelector('.options-container-scroll').scrollTop = 0;
+
         if (gameQueue.length === 0) {
             alert("Livro finalizado!");
             toggleReviewMode();
@@ -366,24 +416,15 @@
     function generateOptions(correctAnswer) {
         const container = document.getElementById('options-container');
         container.innerHTML = '';
-        container.style.pointerEvents = 'auto'; // Reabilita cliques
+        container.style.pointerEvents = 'auto'; 
 
+        // PEGAR TODOS OS SUBTÍTULOS DO LIVRO
         let allOptions = [...new Set(currentSubtitleList.map(s => s.text))];
-        let displayOptions;
-
-        // Lógica: Se houver muitas opções, pega a correta + 3 erradas
-        // Em telas pequenas, muitas opções poluem
-        if (allOptions.length > 6) {
-            let wrong = allOptions.filter(o => o !== correctAnswer);
-            shuffleArray(wrong);
-            displayOptions = [correctAnswer, ...wrong.slice(0, 3)];
-        } else {
-            displayOptions = [...allOptions];
-        }
         
-        shuffleArray(displayOptions);
+        // Embaralhar todos
+        shuffleArray(allOptions);
 
-        displayOptions.forEach(optText => {
+        allOptions.forEach(optText => {
             const btn = document.createElement('div');
             btn.className = 'option-btn';
             btn.innerText = optText;
@@ -393,7 +434,7 @@
     }
 
     function checkAnswer(btn, selected, correct) {
-        document.getElementById('options-container').style.pointerEvents = 'none'; // Bloqueia tudo
+        document.getElementById('options-container').style.pointerEvents = 'none';
         const feedback = document.getElementById('feedback');
 
         if (selected === correct) {
@@ -411,9 +452,13 @@
             sessionStats.wrong++;
             subtitlePerformance[correct] = 'wrong';
             
-            // Destaca correta
+            // Destaca correta - procura em todos os botões gerados
             document.querySelectorAll('.option-btn').forEach(b => {
-                if(b.innerText === correct) b.classList.add('correct');
+                if(b.innerText === correct) {
+                    b.classList.add('correct');
+                    // Tenta rolar até a resposta certa se ela não estiver visível
+                    b.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             });
 
             const retry = gameQueue.shift();
