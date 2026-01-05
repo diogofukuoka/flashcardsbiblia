@@ -7,7 +7,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos v3.6</title>
+    <title>Flashcards Bíblicos v3.7</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -21,7 +21,6 @@
             background-color: var(--bg); 
             margin: 0; padding: 0; 
             color: var(--text); 
-            /* CORREÇÃO MOBILE: dvh ajusta a altura ignorando a barra de endereço */
             height: 100vh; 
             height: 100dvh; 
             width: 100vw;
@@ -98,16 +97,14 @@
         .correct { background-color: #1b5e20 !important; border-color: #2e7d32 !important; color: white !important; }
         .wrong { background-color: #b71c1c !important; border-color: #c62828 !important; color: white !important; }
         
-        /* BOTÕES DE AÇÃO - CORREÇÃO MOBILE */
         .action-buttons-container {
             display: flex; 
             justify-content: center; 
             flex-wrap: wrap; 
             flex-shrink: 0; 
             padding-top: 5px;
-            /* Garante espaço extra no fundo para telas com bordas arredondadas/barras de gesto */
             padding-bottom: max(10px, env(safe-area-inset-bottom));
-            background-color: var(--bg); /* Garante legibilidade se houver sobreposição */
+            background-color: var(--bg);
         }
         .btn-action { background: transparent; border: 1px solid #666; color: #ccc; padding: 10px 20px; border-radius: 50px; cursor: pointer; font-size: 0.85rem; flex: 1; margin: 5px; max-width: 150px; }
 
@@ -136,7 +133,7 @@
 
         .sortable-list { list-style: none; padding: 0; margin: 0; width: 100%; }
 
-        /* ORDENAÇÃO - ALÇA À DIREITA */
+        /* ORDENAÇÃO */
         .sortable-item { 
             background: #2c2c2c; 
             border: 1px solid #444; 
@@ -145,7 +142,7 @@
             border-radius: 6px; 
             display: flex; 
             align-items: center; 
-            justify-content: space-between; /* Separa texto e alça */
+            justify-content: space-between; 
             cursor: grab; 
             font-size: 0.95rem; 
             width: 100%; 
@@ -153,29 +150,68 @@
         
         .handle { 
             color: #666; 
-            /* Alça à direita */
             margin-left: 10px; 
             margin-right: 2px;
-            font-size: 1.4rem; /* Alça um pouco maior para facilitar o toque */
+            font-size: 1.4rem; 
             padding: 5px; 
             cursor: grab; 
             flex-shrink: 0; 
         }
         
-        .item-text { 
-            line-height: 1.3; 
-            flex-grow: 1; 
-            text-align: left;
-        }
-        
+        .item-text { line-height: 1.3; flex-grow: 1; text-align: left; }
         .pos-correct { border-left: 4px solid #27ae60; background: rgba(39, 174, 96, 0.15); }
         .pos-wrong { border-left: 4px solid #c0392b; background: rgba(192, 57, 43, 0.15); }
+
+        /* NOVO: BARRA DE NAVEGAÇÃO DE SUBTÍTULOS */
+        .subtitle-nav-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #252525;
+            padding: 5px;
+            margin: 5px 0;
+            border-radius: 8px;
+            border: 1px solid #333;
+            flex-shrink: 0;
+        }
+        .nav-title {
+            margin: 0 10px;
+            text-align: center;
+            font-weight: bold;
+            color: #fff;
+            font-size: 0.95rem;
+            flex-grow: 1;
+            line-height: 1.2;
+        }
+        .nav-arrow {
+            background: #3b78e7;
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+        .nav-arrow:active { transform: scale(0.95); }
+        .nav-arrow:disabled {
+            background: #333;
+            color: #666;
+            cursor: default;
+            transform: none;
+        }
 
         @media (min-width: 768px) {
             .book-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
             .book-btn { font-size: 16px; }
             .options-grid { grid-template-columns: repeat(2, 1fr); }
             .container { padding: 30px; } 
+            .nav-title { font-size: 1.1rem; }
         }
     </style>
 </head>
@@ -184,7 +220,7 @@
 <div class="container">
     <div id="main-header">
         <h1 id="main-title">Flashcards Bíblicos</h1>
-        <div class="version-tag" id="version-tag">v3.6 (Mobile Fix)</div>
+        <div class="version-tag" id="version-tag">v3.7 (Nav Buttons)</div>
     </div>
 
     <!-- SELEÇÃO DE LIVROS -->
@@ -273,7 +309,14 @@
             <span>🔢 Versículos</span>
             <span>📖 <span class="lbl-book-name">...</span></span>
         </div>
-        <p id="verse-game-subtitle" style="text-align:center; color:#e0e0e0; font-weight:bold; font-size:1rem; margin:5px 0; padding:0 5px; flex-shrink:0;">...</p>
+        
+        <!-- NOVA BARRA DE NAVEGAÇÃO -->
+        <div class="subtitle-nav-container">
+            <button id="btn-prev-sub" class="nav-arrow" onclick="navSubtitle(-1)">&#10094;</button>
+            <p id="verse-game-subtitle" class="nav-title">...</p>
+            <button id="btn-next-sub" class="nav-arrow" onclick="navSubtitle(1)">&#10095;</button>
+        </div>
+
         <p style="text-align:center; color:#888; font-size:0.85rem; margin-bottom:5px; flex-shrink:0;">Coloque os versículos na ordem:</p>
         
         <div class="options-container-scroll">
@@ -324,6 +367,10 @@
     
     let orderingListOriginal = [], sortableInstance = null;
     let verseOrderingOriginal = [], sortableVerseInstance = null;
+    
+    // Variáveis globais para navegação
+    let currentSubIndex = -1;
+    let currentBookCode = null;
 
     window.onload = function() { renderBookGrid(); }
 
@@ -506,7 +553,6 @@
             const li = document.createElement('li');
             li.className = 'sortable-item';
             li.setAttribute('data-real-index', item.realIndex); 
-            // ALTERAÇÃO: Texto primeiro, Alça depois (para ficar à direita)
             li.innerHTML = `<span class="item-text">${item.text}</span><span class="handle">☰</span>`;
             listEl.appendChild(li);
         });
@@ -551,6 +597,7 @@
     function renderSubtitleSelection() {
         const data = getBookData();
         currentSubtitleList = data.sortedList;
+        currentBookCode = data.code; // Salva o código do livro globalmente
         
         const listEl = document.getElementById('subtitle-select-list');
         listEl.innerHTML = "";
@@ -559,7 +606,7 @@
             const li = document.createElement('li');
             li.className = 'review-item';
             li.innerHTML = `<div class="dot" style="background:#9c27b0"></div><div><strong>${sub.cap}:${sub.ver}</strong> - ${sub.text}</div>`;
-            li.onclick = () => startVerseOrdering(index, data.code);
+            li.onclick = () => startVerseOrdering(index);
             listEl.appendChild(li);
         });
 
@@ -595,7 +642,9 @@
         }));
     }
 
-    function startVerseOrdering(subIndex, bookCode) {
+    function startVerseOrdering(subIndex) {
+        currentSubIndex = subIndex; // Atualiza o índice global
+        
         document.getElementById('subtitle-select-area').classList.add('hidden');
         document.getElementById('game-verse-ordering').classList.remove('hidden');
         
@@ -603,37 +652,48 @@
         document.getElementById('verse-game-subtitle').innerText = subtitleObj.text;
         document.querySelectorAll('.lbl-book-name').forEach(el => el.innerText = selectedBookName);
         
-        verseOrderingOriginal = getVersesForSubtitle(subIndex, bookCode);
+        // Atualiza estado dos botões de navegação
+        document.getElementById('btn-prev-sub').disabled = (subIndex <= 0);
+        document.getElementById('btn-next-sub').disabled = (subIndex >= currentSubtitleList.length - 1);
         
+        verseOrderingOriginal = getVersesForSubtitle(subIndex, currentBookCode);
+        
+        const listEl = document.getElementById('sortable-verse-list');
+        listEl.innerHTML = "";
+        document.getElementById('verse-order-feedback').innerText = "";
+
         if (verseOrderingOriginal.length < 2) {
-            alert("Este subtítulo tem apenas 1 versículo ou nenhum encontrado. Escolha outro.");
-            backToSubtitleSelect();
+            // Se tiver pouco versículo, avisa mas permite navegar
+            listEl.innerHTML = "<li style='text-align:center; padding:20px; color:#888;'>Este subtítulo tem apenas 1 versículo.</li>";
             return;
         }
 
         let shuffled = [...verseOrderingOriginal];
         shuffleArray(shuffled);
         
-        const listEl = document.getElementById('sortable-verse-list');
-        listEl.innerHTML = "";
-        
         shuffled.forEach(item => {
             const li = document.createElement('li');
             li.className = 'sortable-item';
             li.setAttribute('data-real-index', item.realIndex);
-            // ALTERAÇÃO: Texto primeiro, Alça depois
             li.innerHTML = `<span class="item-text">${item.text}</span><span class="handle">☰</span>`;
             listEl.appendChild(li);
         });
-        
-        document.getElementById('verse-order-feedback').innerText = "";
         
         if(sortableVerseInstance) sortableVerseInstance.destroy();
         sortableVerseInstance = new Sortable(listEl, { handle: '.handle', animation: 150, ghostClass: 'ghost-class' });
     }
 
+    function navSubtitle(direction) {
+        const newIndex = currentSubIndex + direction;
+        if (newIndex >= 0 && newIndex < currentSubtitleList.length) {
+            startVerseOrdering(newIndex);
+        }
+    }
+
     function checkVerseOrder() {
         const listItems = document.querySelectorAll('#sortable-verse-list .sortable-item');
+        if (listItems.length === 0) return;
+
         let allCorrect = true, errors = 0;
         listItems.forEach((li, domIndex) => {
             const correctIndex = parseInt(li.getAttribute('data-real-index'));
@@ -649,6 +709,8 @@
     function showCorrectVerseOrder() {
         if(!confirm("Mostrar a resposta correta?")) return;
         const listEl = document.getElementById('sortable-verse-list');
+        if (!listEl.querySelector('.sortable-item')) return;
+
         listEl.innerHTML = "";
         verseOrderingOriginal.forEach(item => {
             const li = document.createElement('li');
