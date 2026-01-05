@@ -7,7 +7,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos v3.1</title>
+    <title>Flashcards Bíblicos v3.2</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -19,10 +19,10 @@
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
             background-color: var(--bg); 
-            margin: 0; padding: 10px; /* Padding reduzido no body */
+            margin: 0; padding: 10px; 
             color: var(--text); 
-            height: 100vh; /* Garante altura total */
-            overflow: hidden; /* Evita scroll duplo */
+            height: 100vh; 
+            overflow: hidden; 
         }
 
         .container { 
@@ -39,7 +39,7 @@
         .hidden { display: none !important; }
         
         /* SCROLL GERAL */
-        .scroll-area { overflow-y: auto; flex-grow: 1; padding-bottom: 20px; }
+        .scroll-area { overflow-y: auto; flex-grow: 1; padding-bottom: 20px; scrollbar-width: thin; }
 
         /* SELEÇÃO DE LIVROS */
         .section-title { color: #888; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; margin-top: 20px; margin-bottom: 5px; border-bottom: 1px solid #333; padding-bottom: 2px; }
@@ -57,20 +57,21 @@
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .modal-content { background: #2c2c2c; padding: 25px; border-radius: 12px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
-        .modal-btn { display: block; width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; : 0.95rem; cursor: pointer; font-weight: bold; color: white; }
+        .modal-btn { display: block; width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; font-size: 0.95rem; cursor: pointer; font-weight: bold; color: white; }
         .btn-mode-flash { background-color: #3b78e7; }
         .btn-mode-order { background-color: #27ae60; }
+        .btn-mode-verse { background-color: #9c27b0; } /* Nova cor para o novo modo */
         .btn-close { background-color: #444; margin-top: 15px; }
 
         /* UI DO JOGO */
         .game-header { flex-shrink: 0; }
-        .stats-bar { display: flex; justify-content: space-between; background: #2c2c2c; padding: 10px; border-radius: 8px; margin-bottom: 10px; : 0.85em; border: 1px solid var(--border); }
+        .stats-bar { display: flex; justify-content: space-between; background: #2c2c2c; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.85em; border: 1px solid var(--border); }
         
         .flashcard { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; margin: 10px 0; border-radius: 12px; text-align: center; }
-        .verse-text { : 1.2rem; line-height: 1.4; display: block; margin-bottom: 10px; color: #fff; }
-        .verse-ref { color: #888; font-style: italic; : 0.8rem; display: block;}
+        .verse-text { font-size: 1.2rem; line-height: 1.4; display: block; margin-bottom: 10px; color: #fff; }
+        .verse-ref { color: #888; font-style: italic; font-size: 0.8rem; display: block;}
         
-        .feedback-msg { text-align: center; font-weight: bold; : 1rem; min-height: 25px; margin: 5px 0; padding: 5px; }
+        .feedback-msg { text-align: center; font-weight: bold; font-size: 1rem; min-height: 25px; margin: 5px 0; padding: 5px; }
         
         /* LISTA DE OPÇÕES (FLASHCARD) */
         .options-container-scroll { max-height: 40vh; overflow-y: auto; padding-right: 5px; margin-bottom: 10px; scrollbar-width: thin; scrollbar-color: #555 #1e1e1e; }
@@ -80,20 +81,13 @@
         .wrong { background-color: #b71c1c !important; border-color: #c62828 !important; color: white !important; }
         .btn-action { background: transparent; border: 1px solid #666; color: #ccc; padding: 10px 20px; border-radius: 50px; cursor: pointer; font-size: 0.85rem; flex: 1; margin: 5px; }
 
-        /* UI DA REVISÃO (ESTRUTURA) - OTIMIZADA */
-        .review-header {
-            text-align: center;
-            padding-bottom: 10px;
-            flex-shrink: 0; /* Não encolhe */
-        }
+        /* UI DA REVISÃO E SELEÇÃO DE SUBTÍTULO */
+        .review-header { text-align: center; padding-bottom: 10px; flex-shrink: 0; }
         .review-header h2 { margin: 5px 0; font-size: 1.2rem; color: #fff; }
         .review-header button { margin-bottom: 5px; padding: 8px 20px; font-size: 0.85rem; }
 
         .review-list { 
-            list-style: none; 
-            padding: 0; 
-            margin: 0;
-            /* Ocupa a altura restante da tela, menos o cabeçalho (~140px) */
+            list-style: none; padding: 0; margin: 0;
             height: calc(100vh - 140px); 
             overflow-y: auto; 
             border-top: 1px solid #333;
@@ -101,19 +95,20 @@
         }
         
         .review-item { 
-            padding: 8px 5px; /* Compacto verticalmente */
+            padding: 12px 10px; 
             border-bottom: 1px solid #2a2a2a; 
-            display: flex; 
-            align-items: center; 
-            font-size: 1.0rem; /* Fonte levemente menor */
-            line-height: 1.3;
+            display: flex; align-items: center; 
+            font-size: 1.0rem; line-height: 1.3;
+            cursor: pointer; /* Adicionado para seleção */
         }
+        .review-item:active { background-color: #333; }
         .review-item:nth-child(even) { background-color: rgba(255,255,255,0.02); }
         .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 10px; flex-shrink: 0; margin-left: 5px; }
 
         /* ORDENAÇÃO */
         .sortable-item { background: #2c2c2c; border: 1px solid #444; padding: 12px; margin-bottom: 6px; border-radius: 6px; display: flex; align-items: center; cursor: grab; font-size: 0.9rem; }
-        .handle { color: #666; margin-right: 12px; font-size: 1.2rem; padding: 0 5px; }
+        .handle { color: #666; margin-right: 12px; font-size: 1.2rem; padding: 0 5px; cursor: grab; }
+        .item-text { line-height: 1.3; }
         .pos-correct { border-left: 4px solid #27ae60; background: rgba(39, 174, 96, 0.15); }
         .pos-wrong { border-left: 4px solid #c0392b; background: rgba(192, 57, 43, 0.15); }
 
@@ -130,10 +125,10 @@
 <div class="container">
     <div id="main-header">
         <h1 id="main-title">Flashcards Bíblicos</h1>
-        <div class="version-tag" id="version-tag">v3.1 (Lista Otimizada)</div>
+        <div class="version-tag" id="version-tag">v3.2 (Versículos)</div>
     </div>
 
-    <!-- SELEÇÃO -->
+    <!-- SELEÇÃO DE LIVROS -->
     <div id="setup-area" class="scroll-area">
         <div id="loading" class="loading hidden" style="text-align:center; padding:20px; color:#aaa;">Carregando...</div>
         <div id="grid-container">
@@ -145,18 +140,28 @@
         </div>
     </div>
 
-    <!-- MODAL -->
+    <!-- MODAL DE MODO -->
     <div id="mode-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h2 id="modal-book-title" style="margin-top:0; color:#fff;">Livro</h2>
             <p style="color:#aaa; margin-bottom:15px; font-size:0.9rem;">Escolha o modo:</p>
             <button class="modal-btn btn-mode-flash" onclick="selectMode('flashcards')">📖 Estudo de Versículos</button>
             <button class="modal-btn btn-mode-order" onclick="selectMode('ordering')">🔃 Ordenar Subtítulos</button>
+            <button class="modal-btn btn-mode-verse" onclick="selectMode('verse_ordering')">🔢 Ordenar Versículos</button>
             <button class="modal-btn btn-close" onclick="closeModal()">Cancelar</button>
         </div>
     </div>
 
-    <!-- FLASHCARDS -->
+    <!-- SELEÇÃO DE SUBTÍTULO (PARA O MODO DE ORDENAR VERSÍCULOS) -->
+    <div id="subtitle-select-area" class="hidden" style="height:100%; display:flex; flex-direction:column;">
+        <div class="review-header">
+            <h2>Escolha o Subtítulo</h2>
+            <button class="btn-action" onclick="resetGame()">Voltar</button>
+        </div>
+        <ul id="subtitle-select-list" class="review-list"></ul>
+    </div>
+
+    <!-- JOGO: FLASHCARDS -->
     <div id="game-flashcards" class="hidden scroll-area">
         <div class="game-header">
             <div class="stats-bar">
@@ -182,10 +187,10 @@
         </div>
     </div>
 
-    <!-- ORDENAÇÃO -->
+    <!-- JOGO: ORDENAÇÃO DE SUBTÍTULOS -->
     <div id="game-ordering" class="hidden scroll-area">
         <div class="stats-bar">
-            <span>🔃 Ordenação</span>
+            <span>🔃 Subtítulos</span>
             <span>📖 <span class="lbl-book-name">...</span></span>
         </div>
         <p style="text-align:center; color:#888; font-size:0.85rem; margin-bottom:10px;">Arraste para a ordem correta:</p>
@@ -203,13 +208,34 @@
         </div>
     </div>
 
-    <!-- REVIEW (ESTRUTURA DO LIVRO) - TELA CHEIA -->
+    <!-- JOGO: ORDENAÇÃO DE VERSÍCULOS -->
+    <div id="game-verse-ordering" class="hidden scroll-area">
+        <div class="stats-bar">
+            <span>🔢 Versículos</span>
+            <span>📖 <span class="lbl-book-name">...</span></span>
+        </div>
+        <p id="verse-game-subtitle" style="text-align:center; color:#e0e0e0; font-weight:bold; font-size:1rem; margin:10px 0; padding:0 10px;">...</p>
+        <p style="text-align:center; color:#888; font-size:0.85rem; margin-bottom:10px;">Coloque os versículos na ordem:</p>
+        
+        <div class="options-container-scroll" style="max-height: 50vh;">
+            <ul id="sortable-verse-list" class="sortable-list"></ul>
+        </div>
+        
+        <div id="verse-order-feedback" class="feedback-msg"></div>
+        
+        <div style="display:flex; justify-content:center; flex-wrap:wrap;">
+            <button class="btn-action" style="background:#9c27b0; color:white; border:none;" onclick="checkVerseOrder()">Verificar</button>
+            <button class="btn-action" onclick="showCorrectVerseOrder()">Resposta</button>
+            <button class="btn-action" onclick="backToSubtitleSelect()">Voltar</button>
+        </div>
+    </div>
+
+    <!-- REVIEW (ESTRUTURA DO LIVRO) -->
     <div id="review-area" class="hidden" style="height:100%; display:flex; flex-direction:column;">
         <div class="review-header">
             <h2>Estrutura: <span class="lbl-book-name" style="font-weight:normal; color:#aaa;"></span></h2>
             <button class="btn-action" onclick="toggleReviewMode()">Voltar ao Jogo</button>
         </div>
-        <!-- A lista agora ocupa todo o resto da tela -->
         <ul id="review-list" class="review-list"></ul>
     </div>
 </div>
@@ -218,7 +244,6 @@
     const ARQUIVO_BIBLIA = 'Versículos.xlsx'; 
     const ARQUIVO_SUBTITULOS = 'Subtítulos.xlsx';
     
-    // Lista de Livros (Reduzida no código para brevidade, mas funciona igual)
     const bibleBooks = [
         { abbr: 'Gn', name: 'Gênesis', cat: 'cat-law' }, { abbr: 'Êx', name: 'Êxodo', cat: 'cat-law' }, { abbr: 'Lv', name: 'Levítico', cat: 'cat-law' }, { abbr: 'Nm', name: 'Números', cat: 'cat-law' }, { abbr: 'Dt', name: 'Deuteronômio', cat: 'cat-law' },
         { abbr: 'Js', name: 'Josué', cat: 'cat-history' }, { abbr: 'Jz', name: 'Juízes', cat: 'cat-history' }, { abbr: 'Rt', name: 'Rute', cat: 'cat-history' }, { abbr: '1Sm', name: '1 Samuel', cat: 'cat-history' }, { abbr: '2Sm', name: '2 Samuel', cat: 'cat-history' }, { abbr: '1Rs', name: '1 Reis', cat: 'cat-history' }, { abbr: '2Rs', name: '2 Reis', cat: 'cat-history' }, { abbr: '1Cr', name: '1 Crônicas', cat: 'cat-history' }, { abbr: '2Cr', name: '2 Crônicas', cat: 'cat-history' }, { abbr: 'Ed', name: 'Esdras', cat: 'cat-history' }, { abbr: 'Ne', name: 'Neemias', cat: 'cat-history' }, { abbr: 'Et', name: 'Ester', cat: 'cat-history' },
@@ -237,7 +262,12 @@
     let gameQueue = [], currentSubtitleList = [], currentVerse = null;
     let sessionStats = { correct: 0, wrong: 0, total: 0 };
     let subtitlePerformance = {}; 
+    
+    // Variáveis para ordenação de subtítulos
     let orderingListOriginal = [], sortableInstance = null;
+    
+    // Variáveis para ordenação de versículos
+    let verseOrderingOriginal = [], sortableVerseInstance = null;
 
     window.onload = function() { renderBookGrid(); }
 
@@ -271,11 +301,18 @@
         setup.classList.add('hidden');
 
         try {
+            // Carrega subtítulos se necessário
             if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
-            if (mode === 'flashcards' && dbVerses.length === 0) dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
+            
+            // Se for flashcards ou ordenação de versículos, precisa dos versículos
+            if ((mode === 'flashcards' || mode === 'verse_ordering') && dbVerses.length === 0) {
+                dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
+            }
 
             if (mode === 'flashcards') startFlashcardsGame();
-            else startOrderingGame();
+            else if (mode === 'ordering') startOrderingGame();
+            else if (mode === 'verse_ordering') renderSubtitleSelection();
+
         } catch (error) {
             console.error(error);
             alert("Erro ao carregar: " + error.message);
@@ -317,14 +354,17 @@
             id: idx,
             cap: parseInt(s['Capítulo']),
             ver: parseInt(s['Versículo']),
-            text: cleanText(s['Subtítulo'])
+            text: cleanText(s['Subtítulo']),
+            code: s['Cód do livro']
         })).sort((a, b) => (a.cap - b.cap) || (a.ver - b.ver));
         
         list.forEach((item, index) => item.realIndex = index);
         return { raw: target, sortedList: list, code: target[0]['Cód do livro'] };
     }
 
-    // FLASHCARDS
+    // ==========================================
+    // MODO 1: FLASHCARDS
+    // ==========================================
     function startFlashcardsGame() {
         const data = getBookData();
         currentSubtitleList = data.sortedList;
@@ -401,7 +441,9 @@
         }
     }
 
-    // ORDENAÇÃO
+    // ==========================================
+    // MODO 2: ORDENAÇÃO DE SUBTÍTULOS
+    // ==========================================
     function startOrderingGame() {
         const data = getBookData();
         orderingListOriginal = [...data.sortedList]; 
@@ -455,17 +497,143 @@
         document.getElementById('order-feedback').innerText = "Esta é a ordem correta.";
     }
 
+    // ==========================================
+    // MODO 3: ORDENAÇÃO DE VERSÍCULOS
+    // ==========================================
+    
+    function renderSubtitleSelection() {
+        const data = getBookData();
+        currentSubtitleList = data.sortedList;
+        
+        const listEl = document.getElementById('subtitle-select-list');
+        listEl.innerHTML = "";
+        
+        currentSubtitleList.forEach((sub, index) => {
+            const li = document.createElement('li');
+            li.className = 'review-item';
+            li.innerHTML = `<div class="dot" style="background:#9c27b0"></div><div><strong>${sub.cap}:${sub.ver}</strong> - ${sub.text}</div>`;
+            li.onclick = () => startVerseOrdering(index, data.code);
+            listEl.appendChild(li);
+        });
+
+        document.getElementById('subtitle-select-area').classList.remove('hidden');
+    }
+
+    function backToSubtitleSelect() {
+        document.getElementById('game-verse-ordering').classList.add('hidden');
+        document.getElementById('subtitle-select-area').classList.remove('hidden');
+    }
+
+    function getVersesForSubtitle(subIndex, bookCode) {
+        const startSub = currentSubtitleList[subIndex];
+        // O próximo subtítulo define o limite. Se não houver próximo, vai até o fim.
+        const endSub = currentSubtitleList[subIndex + 1]; 
+        
+        // Filtra versículos do livro
+        const bookVerses = dbVerses.filter(r => r['book_number'] == bookCode);
+        
+        const versesInRange = bookVerses.filter(v => {
+            const vCap = parseInt(v['chapter']);
+            const vVer = parseInt(v['verse']);
+            
+            // Verifica se é maior ou igual ao inicio
+            const afterStart = (vCap > startSub.cap) || (vCap === startSub.cap && vVer >= startSub.ver);
+            
+            // Verifica se é menor que o fim (se houver fim)
+            let beforeEnd = true;
+            if (endSub) {
+                beforeEnd = (vCap < endSub.cap) || (vCap === endSub.cap && vVer < endSub.ver);
+            }
+            
+            return afterStart && beforeEnd;
+        });
+        
+        return versesInRange.map((v, i) => ({
+            id: i,
+            text: cleanText(v['text']),
+            ref: `${v['chapter']}:${v['verse']}`,
+            realIndex: i
+        }));
+    }
+
+    function startVerseOrdering(subIndex, bookCode) {
+        document.getElementById('subtitle-select-area').classList.add('hidden');
+        document.getElementById('game-verse-ordering').classList.remove('hidden');
+        
+        const subtitleObj = currentSubtitleList[subIndex];
+        document.getElementById('verse-game-subtitle').innerText = subtitleObj.text;
+        document.querySelectorAll('.lbl-book-name').forEach(el => el.innerText = selectedBookName);
+        
+        verseOrderingOriginal = getVersesForSubtitle(subIndex, bookCode);
+        
+        if (verseOrderingOriginal.length < 2) {
+            alert("Este subtítulo tem apenas 1 versículo ou nenhum encontrado. Escolha outro.");
+            backToSubtitleSelect();
+            return;
+        }
+
+        let shuffled = [...verseOrderingOriginal];
+        shuffleArray(shuffled);
+        
+        const listEl = document.getElementById('sortable-verse-list');
+        listEl.innerHTML = "";
+        
+        shuffled.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'sortable-item';
+            li.setAttribute('data-real-index', item.realIndex);
+            // Mostra o texto do versículo. Opcional: mostrar a referência (item.ref) se quiser facilitar
+            li.innerHTML = `<span class="handle">☰</span><span class="item-text">${item.text}</span>`;
+            listEl.appendChild(li);
+        });
+        
+        document.getElementById('verse-order-feedback').innerText = "";
+        
+        if(sortableVerseInstance) sortableVerseInstance.destroy();
+        sortableVerseInstance = new Sortable(listEl, { handle: '.handle', animation: 150, ghostClass: 'ghost-class' });
+    }
+
+    function checkVerseOrder() {
+        const listItems = document.querySelectorAll('#sortable-verse-list .sortable-item');
+        let allCorrect = true, errors = 0;
+        listItems.forEach((li, domIndex) => {
+            const correctIndex = parseInt(li.getAttribute('data-real-index'));
+            li.classList.remove('pos-correct', 'pos-wrong');
+            if (correctIndex === domIndex) li.classList.add('pos-correct');
+            else { li.classList.add('pos-wrong'); allCorrect = false; errors++; }
+        });
+        const fb = document.getElementById('verse-order-feedback');
+        if (allCorrect) { fb.innerText = "Parabéns! Versículos na ordem correta."; fb.style.color = "#9c27b0"; }
+        else { fb.innerText = `${errors} versículos fora de posição.`; fb.style.color = "#c0392b"; }
+    }
+
+    function showCorrectVerseOrder() {
+        if(!confirm("Mostrar a resposta correta?")) return;
+        const listEl = document.getElementById('sortable-verse-list');
+        listEl.innerHTML = "";
+        verseOrderingOriginal.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'sortable-item pos-correct';
+            li.setAttribute('data-real-index', item.realIndex);
+            // Adicionei a referência (Cap:Ver) na resposta para ajudar a conferir
+            li.innerHTML = `<span class="handle">☰</span><span class="item-text"><strong>(${item.ref})</strong> ${item.text}</span>`;
+            listEl.appendChild(li);
+        });
+        document.getElementById('verse-order-feedback').innerText = "Ordem correta exibida.";
+    }
+
+    // ==========================================
+    // UTILITÁRIOS GERAIS
+    // ==========================================
     function toggleReviewMode() {
         const gameDiv = document.getElementById('game-flashcards');
         const reviewDiv = document.getElementById('review-area');
         
-        // Se a revisão está visível, esconder e mostrar o jogo
         if (!reviewDiv.classList.contains('hidden')) { 
             reviewDiv.classList.add('hidden'); 
             gameDiv.classList.remove('hidden'); 
         } 
         else {
-            // Esconder o jogo e mostrar a revisão
             gameDiv.classList.add('hidden'); 
             reviewDiv.classList.remove('hidden');
             
@@ -490,4 +658,3 @@
 </script>
 </body>
 </html>
-
