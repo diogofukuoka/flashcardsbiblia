@@ -7,7 +7,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos v3.7</title>
+    <title>Flashcards Bíblicos v3.8</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -70,6 +70,7 @@
         .btn-mode-flash { background-color: #3b78e7; }
         .btn-mode-order { background-color: #27ae60; }
         .btn-mode-verse { background-color: #9c27b0; }
+        .btn-mode-summary { background-color: #e91e63; } /* Nova cor para Resumos */
         .btn-close { background-color: #444; margin-top: 15px; }
 
         /* UI DO JOGO */
@@ -80,6 +81,18 @@
         .verse-text { font-size: 1.2rem; line-height: 1.4; display: block; margin-bottom: 10px; color: #fff; }
         .verse-ref { color: #888; font-style: italic; font-size: 0.8rem; display: block;}
         
+        /* Estilo específico para o texto do resumo (pode ser longo) */
+        .summary-text {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            color: #fff;
+            text-align: justify;
+            padding: 10px;
+            background: #252525;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
         .feedback-msg { text-align: center; font-weight: bold; font-size: 1rem; min-height: 25px; margin: 5px 0; padding: 5px; flex-shrink: 0; }
         
         .options-container-scroll { 
@@ -133,7 +146,6 @@
 
         .sortable-list { list-style: none; padding: 0; margin: 0; width: 100%; }
 
-        /* ORDENAÇÃO */
         .sortable-item { 
             background: #2c2c2c; 
             border: 1px solid #444; 
@@ -162,7 +174,6 @@
         .pos-correct { border-left: 4px solid #27ae60; background: rgba(39, 174, 96, 0.15); }
         .pos-wrong { border-left: 4px solid #c0392b; background: rgba(192, 57, 43, 0.15); }
 
-        /* NOVO: BARRA DE NAVEGAÇÃO DE SUBTÍTULOS */
         .subtitle-nav-container {
             display: flex;
             align-items: center;
@@ -220,7 +231,7 @@
 <div class="container">
     <div id="main-header">
         <h1 id="main-title">Flashcards Bíblicos</h1>
-        <div class="version-tag" id="version-tag">v3.7 (Nav Buttons)</div>
+        <div class="version-tag" id="version-tag">v3.8 (Resumos)</div>
     </div>
 
     <!-- SELEÇÃO DE LIVROS -->
@@ -232,10 +243,15 @@
             <div id="grid-vt" class="book-grid"></div>
             <div class="section-title">Novo Testamento</div>
             <div id="grid-nt" class="book-grid"></div>
+            
+            <!-- Botão Especial para o Modo Resumo (fora da grade de livros) -->
+            <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
+                <button class="modal-btn btn-mode-summary" onclick="selectMode('summary_game')">📚 Adivinhar Livro pelo Resumo</button>
+            </div>
         </div>
     </div>
 
-    <!-- MODAL DE MODO -->
+    <!-- MODAL DE MODO (Para livros específicos) -->
     <div id="mode-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h2 id="modal-book-title" style="margin-top:0; color:#fff;">Livro</h2>
@@ -310,7 +326,6 @@
             <span>📖 <span class="lbl-book-name">...</span></span>
         </div>
         
-        <!-- NOVA BARRA DE NAVEGAÇÃO -->
         <div class="subtitle-nav-container">
             <button id="btn-prev-sub" class="nav-arrow" onclick="navSubtitle(-1)">&#10094;</button>
             <p id="verse-game-subtitle" class="nav-title">...</p>
@@ -332,6 +347,27 @@
         </div>
     </div>
 
+    <!-- JOGO: RESUMOS (NOVO) -->
+    <div id="game-summary" class="hidden game-layout">
+        <div class="game-header">
+            <div class="stats-bar">
+                <span>📚 Resumos</span>
+                <span>Faltam: <span id="sum-remaining">0</span></span>
+                <span style="color:#4caf50">✔ <span id="sum-score">0</span></span>
+            </div>
+        </div>
+        
+        <div class="options-container-scroll">
+            <div id="summary-text-display" class="summary-text">...</div>
+            <div id="sum-feedback" class="feedback-msg"></div>
+            <div id="sum-options-container" class="options-grid"></div>
+        </div>
+        
+        <div class="action-buttons-container">
+            <button class="btn-action" onclick="resetGame()">Sair</button>
+        </div>
+    </div>
+
     <!-- REVIEW (ESTRUTURA DO LIVRO) -->
     <div id="review-area" class="hidden" style="height:100%; display:flex; flex-direction:column;">
         <div class="review-header">
@@ -345,6 +381,7 @@
 <script>
     const ARQUIVO_BIBLIA = 'Versículos.xlsx'; 
     const ARQUIVO_SUBTITULOS = 'Subtítulos.xlsx';
+    const ARQUIVO_RESUMOS = 'Resumos.json'; // Novo arquivo
     
     const bibleBooks = [
         { abbr: 'Gn', name: 'Gênesis', cat: 'cat-law' }, { abbr: 'Êx', name: 'Êxodo', cat: 'cat-law' }, { abbr: 'Lv', name: 'Levítico', cat: 'cat-law' }, { abbr: 'Nm', name: 'Números', cat: 'cat-law' }, { abbr: 'Dt', name: 'Deuteronômio', cat: 'cat-law' },
@@ -359,7 +396,7 @@
         { abbr: 'Ap', name: 'Apocalipse', cat: 'cat-apoc' }
     ];
 
-    let dbVerses = [], dbSubtitles = [];
+    let dbVerses = [], dbSubtitles = [], dbSummaries = [];
     let selectedBookName = "";
     let gameQueue = [], currentSubtitleList = [], currentVerse = null;
     let sessionStats = { correct: 0, wrong: 0, total: 0 };
@@ -368,9 +405,11 @@
     let orderingListOriginal = [], sortableInstance = null;
     let verseOrderingOriginal = [], sortableVerseInstance = null;
     
-    // Variáveis globais para navegação
     let currentSubIndex = -1;
     let currentBookCode = null;
+    
+    // Variáveis para o jogo de Resumos
+    let summaryQueue = [], currentSummary = null;
 
     window.onload = function() { renderBookGrid(); }
 
@@ -404,14 +443,20 @@
         setup.classList.add('hidden');
 
         try {
-            if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
-            if ((mode === 'flashcards' || mode === 'verse_ordering') && dbVerses.length === 0) {
-                dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
-            }
+            // Carregamento condicional de arquivos
+            if (mode === 'summary_game') {
+                if (dbSummaries.length === 0) dbSummaries = await fetchJson(ARQUIVO_RESUMOS);
+                startSummaryGame();
+            } else {
+                if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
+                if ((mode === 'flashcards' || mode === 'verse_ordering') && dbVerses.length === 0) {
+                    dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
+                }
 
-            if (mode === 'flashcards') startFlashcardsGame();
-            else if (mode === 'ordering') startOrderingGame();
-            else if (mode === 'verse_ordering') renderSubtitleSelection();
+                if (mode === 'flashcards') startFlashcardsGame();
+                else if (mode === 'ordering') startOrderingGame();
+                else if (mode === 'verse_ordering') renderSubtitleSelection();
+            }
 
         } catch (error) {
             console.error(error);
@@ -429,6 +474,13 @@
         const ab = await response.arrayBuffer();
         const wb = XLSX.read(ab, { type: 'array' });
         return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    }
+
+    async function fetchJson(filename) {
+        const url = encodeURI(filename) + "?v=" + new Date().getTime();
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Arquivo não encontrado: ${filename}`);
+        return await response.json();
     }
 
     function cleanText(text) { return String(text || "").replace(/<[^>]*>/g, '').replace(/[<>\/]/g, '').trim(); }
@@ -462,7 +514,9 @@
         return { raw: target, sortedList: list, code: target[0]['Cód do livro'] };
     }
 
-    // FLASHCARDS
+    // ==========================================
+    // MODO: FLASHCARDS
+    // ==========================================
     function startFlashcardsGame() {
         const data = getBookData();
         currentSubtitleList = data.sortedList;
@@ -539,7 +593,9 @@
         }
     }
 
-    // ORDENAÇÃO DE SUBTÍTULOS
+    // ==========================================
+    // MODO: ORDENAÇÃO DE SUBTÍTULOS
+    // ==========================================
     function startOrderingGame() {
         const data = getBookData();
         orderingListOriginal = [...data.sortedList]; 
@@ -593,11 +649,13 @@
         document.getElementById('order-feedback').innerText = "Esta é a ordem correta.";
     }
 
-    // ORDENAÇÃO DE VERSÍCULOS
+    // ==========================================
+    // MODO: ORDENAÇÃO DE VERSÍCULOS
+    // ==========================================
     function renderSubtitleSelection() {
         const data = getBookData();
         currentSubtitleList = data.sortedList;
-        currentBookCode = data.code; // Salva o código do livro globalmente
+        currentBookCode = data.code; 
         
         const listEl = document.getElementById('subtitle-select-list');
         listEl.innerHTML = "";
@@ -643,7 +701,7 @@
     }
 
     function startVerseOrdering(subIndex) {
-        currentSubIndex = subIndex; // Atualiza o índice global
+        currentSubIndex = subIndex; 
         
         document.getElementById('subtitle-select-area').classList.add('hidden');
         document.getElementById('game-verse-ordering').classList.remove('hidden');
@@ -652,7 +710,6 @@
         document.getElementById('verse-game-subtitle').innerText = subtitleObj.text;
         document.querySelectorAll('.lbl-book-name').forEach(el => el.innerText = selectedBookName);
         
-        // Atualiza estado dos botões de navegação
         document.getElementById('btn-prev-sub').disabled = (subIndex <= 0);
         document.getElementById('btn-next-sub').disabled = (subIndex >= currentSubtitleList.length - 1);
         
@@ -663,7 +720,6 @@
         document.getElementById('verse-order-feedback').innerText = "";
 
         if (verseOrderingOriginal.length < 2) {
-            // Se tiver pouco versículo, avisa mas permite navegar
             listEl.innerHTML = "<li style='text-align:center; padding:20px; color:#888;'>Este subtítulo tem apenas 1 versículo.</li>";
             return;
         }
@@ -722,6 +778,84 @@
         document.getElementById('verse-order-feedback').innerText = "Ordem correta exibida.";
     }
 
+    // ==========================================
+    // MODO: RESUMOS (NOVO)
+    // ==========================================
+    function startSummaryGame() {
+        summaryQueue = [...dbSummaries];
+        shuffleArray(summaryQueue);
+        sessionStats = { correct: 0, wrong: 0, total: summaryQueue.length };
+        
+        document.getElementById('game-summary').classList.remove('hidden');
+        loadSummaryQuestion();
+    }
+
+    function loadSummaryQuestion() {
+        document.getElementById('sum-remaining').innerText = summaryQueue.length;
+        document.getElementById('sum-score').innerText = sessionStats.correct;
+        document.getElementById('sum-feedback').innerText = "";
+        
+        if (summaryQueue.length === 0) {
+            alert("Parabéns! Você completou todos os resumos.");
+            resetGame();
+            return;
+        }
+
+        currentSummary = summaryQueue[0];
+        document.getElementById('summary-text-display').innerText = currentSummary.summary;
+        
+        const container = document.getElementById('sum-options-container');
+        container.innerHTML = ''; container.style.pointerEvents = 'auto';
+
+        // Gerar opções (1 correta + 3 erradas)
+        let options = [currentSummary.book];
+        while (options.length < 4) {
+            const randomBook = bibleBooks[Math.floor(Math.random() * bibleBooks.length)].name;
+            if (!options.includes(randomBook)) options.push(randomBook);
+        }
+        shuffleArray(options);
+
+        options.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'option-btn';
+            div.innerText = opt;
+            div.onclick = () => checkSummaryAnswer(div, opt);
+            container.appendChild(div);
+        });
+    }
+
+    function checkSummaryAnswer(btn, selected) {
+        document.getElementById('sum-options-container').style.pointerEvents = 'none';
+        const correct = currentSummary.book;
+        const feedback = document.getElementById('sum-feedback');
+
+        if (selected === correct) {
+            btn.classList.add('correct'); 
+            feedback.innerText = "Correto!"; 
+            feedback.style.color = "#4caf50";
+            sessionStats.correct++;
+            summaryQueue.shift(); 
+            setTimeout(loadSummaryQuestion, 1000);
+        } else {
+            btn.classList.add('wrong'); 
+            feedback.innerText = `Resposta: ${correct}`; 
+            feedback.style.color = "#f44336";
+            sessionStats.wrong++;
+            
+            // Destacar a correta
+            document.querySelectorAll('#sum-options-container .option-btn').forEach(b => {
+                if(b.innerText === correct) b.classList.add('correct');
+            });
+            
+            // Joga para o final da fila
+            summaryQueue.push(summaryQueue.shift()); 
+            setTimeout(loadSummaryQuestion, 2500);
+        }
+    }
+
+    // ==========================================
+    // UTILITÁRIOS
+    // ==========================================
     function toggleReviewMode() {
         const gameDiv = document.getElementById('game-flashcards');
         const reviewDiv = document.getElementById('review-area');
