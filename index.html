@@ -7,7 +7,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos v4.1</title>
+    <title>Flashcards Bíblicos v4.2</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -74,7 +74,8 @@
         .btn-mode-verse { background-color: #9c27b0; }
         .btn-mode-summary { background-color: #e91e63; }
         .btn-mode-checklist { background-color: #ff9800; color: #121212; }
-        .btn-mode-read { background-color: #673ab7; } /* Roxo para leitura */
+        .btn-mode-read { background-color: #673ab7; }
+        .btn-mode-ref { background-color: #00bcd4; color: #121212; } /* Nova cor para Referência */
         
         /* CORES DOS BOTÕES DE ORDENAÇÃO DE LIVROS */
         .btn-mode-vt { background-color: #795548; flex: 1; min-width: 120px; }
@@ -91,16 +92,8 @@
         .verse-text { font-size: 1.2rem; line-height: 1.4; display: block; margin-bottom: 10px; color: #fff; }
         .verse-ref { color: #888; font-style: italic; font-size: 0.8rem; display: block;}
         
-        /* ESTILO PARA LEITURA DE RESUMO */
         .summary-text { font-size: 1.1rem; line-height: 1.5; color: #fff; text-align: justify; padding: 10px; background: #252525; border-radius: 8px; margin-bottom: 10px; }
-        .read-summary-content {
-            font-size: 1.15rem;
-            line-height: 1.6;
-            color: #e0e0e0;
-            text-align: justify;
-            padding: 15px;
-            white-space: pre-wrap; /* Preserva parágrafos */
-        }
+        .read-summary-content { font-size: 1.15rem; line-height: 1.6; color: #e0e0e0; text-align: justify; padding: 15px; white-space: pre-wrap; }
 
         .feedback-msg { text-align: center; font-weight: bold; font-size: 1rem; min-height: 25px; margin: 5px 0; padding: 5px; flex-shrink: 0; }
         
@@ -236,7 +229,7 @@
 <div class="container">
     <div id="main-header">
         <h1 id="main-title">Flashcards Bíblicos</h1>
-        <div class="version-tag" id="version-tag">v4.1 (Ler Resumos)</div>
+        <div class="version-tag" id="version-tag">v4.2 (Quiz Referência)</div>
     </div>
 
     <!-- SELEÇÃO DE LIVROS -->
@@ -268,6 +261,7 @@
             <h2 id="modal-book-title" style="margin-top:0; color:#fff;">Livro</h2>
             <p style="color:#aaa; margin-bottom:15px; font-size:0.9rem;">Escolha o modo:</p>
             <button class="modal-btn btn-mode-flash" onclick="selectMode('flashcards')">📖 Estudo de Versículos</button>
+            <button class="modal-btn btn-mode-ref" onclick="selectMode('reference_quiz')">📍 Qual a Referência?</button>
             <button class="modal-btn btn-mode-order" onclick="selectMode('ordering')">🔃 Ordenar Subtítulos</button>
             <button class="modal-btn btn-mode-verse" onclick="selectMode('verse_ordering')">🔢 Ordenar Versículos</button>
             <button class="modal-btn btn-mode-checklist" onclick="selectMode('subtitle_checklist')">✅ Lista de Memorização</button>
@@ -285,7 +279,7 @@
         <ul id="subtitle-select-list" class="review-list"></ul>
     </div>
 
-    <!-- JOGO: FLASHCARDS -->
+    <!-- JOGO: FLASHCARDS (Texto -> Subtítulo) -->
     <div id="game-flashcards" class="hidden game-layout">
         <div class="game-header">
             <div class="stats-bar">
@@ -304,6 +298,27 @@
         </div>
         <div class="action-buttons-container">
             <button class="btn-action" onclick="toggleReviewMode()">Ver Estrutura</button>
+            <button class="btn-action" onclick="resetGame()">Sair</button>
+        </div>
+    </div>
+
+    <!-- NOVO: JOGO DE REFERÊNCIA (Texto -> Referência) -->
+    <div id="game-reference" class="hidden game-layout">
+        <div class="game-header">
+            <div class="stats-bar">
+                <span>📍 Referência</span>
+                <span>Faltam: <span id="ref-remaining">0</span></span>
+                <span style="color:#4caf50">✔ <span id="ref-score">0</span></span>
+            </div>
+        </div>
+        <div class="flashcard">
+            <span class="verse-text" id="ref-verse-text">...</span>
+        </div>
+        <div id="ref-feedback" class="feedback-msg"></div>
+        <div class="options-container-scroll">
+            <div id="ref-options-container" class="options-grid"></div>
+        </div>
+        <div class="action-buttons-container">
             <button class="btn-action" onclick="resetGame()">Sair</button>
         </div>
     </div>
@@ -368,7 +383,7 @@
         </div>
     </div>
 
-    <!-- NOVO: LEITURA DE RESUMO -->
+    <!-- LEITURA DE RESUMO -->
     <div id="view-summary" class="hidden game-layout">
         <div class="game-header">
             <div class="stats-bar" style="justify-content: center;">
@@ -505,11 +520,12 @@
                 startBookOrdering(mode);
             } else {
                 if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
-                if ((mode === 'flashcards' || mode === 'verse_ordering') && dbVerses.length === 0) {
+                if ((mode === 'flashcards' || mode === 'verse_ordering' || mode === 'reference_quiz') && dbVerses.length === 0) {
                     dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
                 }
 
                 if (mode === 'flashcards') startFlashcardsGame();
+                else if (mode === 'reference_quiz') startReferenceQuiz();
                 else if (mode === 'ordering') startOrderingGame();
                 else if (mode === 'verse_ordering') renderSubtitleSelection();
                 else if (mode === 'subtitle_checklist') startSubtitleChecklist();
@@ -572,7 +588,7 @@
     }
 
     // ==========================================
-    // MODO: FLASHCARDS
+    // MODO: FLASHCARDS (Texto -> Subtítulo)
     // ==========================================
     function startFlashcardsGame() {
         const data = getBookData();
@@ -647,6 +663,100 @@
                 if(b.innerText === correct) { b.classList.add('correct'); b.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
             });
             gameQueue.push(gameQueue.shift()); setTimeout(loadFlashcard, 2500);
+        }
+    }
+
+    // ==========================================
+    // MODO: QUAL A REFERÊNCIA? (Texto -> Referência)
+    // ==========================================
+    function startReferenceQuiz() {
+        const data = getBookData(); // Usa para pegar o código do livro
+        const bookVerses = dbVerses.filter(r => r['book_number'] == data.code);
+        
+        if (bookVerses.length === 0) throw new Error("Versículos não encontrados.");
+
+        // Prepara a fila de perguntas
+        gameQueue = bookVerses.map(v => ({
+            text: cleanText(v['text']),
+            correctRef: `${v['chapter']}:${v['verse']}`,
+            // Guarda todos os versos do livro para gerar opções erradas depois
+            allVerses: bookVerses 
+        }));
+
+        shuffleArray(gameQueue);
+        sessionStats = { correct: 0, wrong: 0, total: gameQueue.length };
+
+        document.querySelectorAll('.lbl-book-name').forEach(el => el.innerText = selectedBookName);
+        document.getElementById('game-reference').classList.remove('hidden');
+        loadReferenceQuestion();
+    }
+
+    function loadReferenceQuestion() {
+        document.getElementById('ref-remaining').innerText = gameQueue.length;
+        document.getElementById('ref-score').innerText = sessionStats.correct;
+        document.getElementById('ref-feedback').innerText = "";
+        document.querySelector('#game-reference .options-container-scroll').scrollTop = 0;
+
+        if (gameQueue.length === 0) {
+            alert("Parabéns! Você completou todos os versículos.");
+            resetGame();
+            return;
+        }
+
+        currentVerse = gameQueue[0];
+        document.getElementById('ref-verse-text').innerText = currentVerse.text;
+        
+        const container = document.getElementById('ref-options-container');
+        container.innerHTML = ''; container.style.pointerEvents = 'auto';
+
+        // Gerar opções (1 correta + 3 erradas do mesmo livro)
+        let options = [currentVerse.correctRef];
+        const allVerses = currentVerse.allVerses;
+        
+        // Tenta encontrar 3 opções erradas únicas
+        let attempts = 0;
+        while (options.length < 4 && attempts < 50) {
+            const randomV = allVerses[Math.floor(Math.random() * allVerses.length)];
+            const ref = `${randomV['chapter']}:${randomV['verse']}`;
+            if (!options.includes(ref)) options.push(ref);
+            attempts++;
+        }
+        
+        shuffleArray(options);
+
+        options.forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'option-btn';
+            div.innerText = opt;
+            div.onclick = () => checkReferenceAnswer(div, opt);
+            container.appendChild(div);
+        });
+    }
+
+    function checkReferenceAnswer(btn, selected) {
+        document.getElementById('ref-options-container').style.pointerEvents = 'none';
+        const correct = currentVerse.correctRef;
+        const feedback = document.getElementById('ref-feedback');
+
+        if (selected === correct) {
+            btn.classList.add('correct'); 
+            feedback.innerText = "Correto!"; 
+            feedback.style.color = "#4caf50";
+            sessionStats.correct++;
+            gameQueue.shift(); 
+            setTimeout(loadReferenceQuestion, 1000);
+        } else {
+            btn.classList.add('wrong'); 
+            feedback.innerText = `Resposta: ${correct}`; 
+            feedback.style.color = "#f44336";
+            sessionStats.wrong++;
+            
+            document.querySelectorAll('#ref-options-container .option-btn').forEach(b => {
+                if(b.innerText === correct) b.classList.add('correct');
+            });
+            
+            gameQueue.push(gameQueue.shift()); 
+            setTimeout(loadReferenceQuestion, 2500);
         }
     }
 
@@ -906,12 +1016,10 @@
     }
 
     // ==========================================
-    // MODO: LER RESUMO (NOVO)
+    // MODO: LER RESUMO
     // ==========================================
     function showBookSummary() {
-        // Normaliza para garantir que encontre mesmo com diferenças de acento
         const summaryObj = dbSummaries.find(s => normalize(s.book) === normalize(selectedBookName));
-        
         const text = summaryObj ? summaryObj.summary : "Resumo não disponível para este livro.";
         
         document.querySelectorAll('.lbl-book-name').forEach(el => el.innerText = selectedBookName);
