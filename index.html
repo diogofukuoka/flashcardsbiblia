@@ -7,7 +7,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos v4.0</title>
+    <title>Flashcards Bíblicos v4.1</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -74,6 +74,7 @@
         .btn-mode-verse { background-color: #9c27b0; }
         .btn-mode-summary { background-color: #e91e63; }
         .btn-mode-checklist { background-color: #ff9800; color: #121212; }
+        .btn-mode-read { background-color: #673ab7; } /* Roxo para leitura */
         
         /* CORES DOS BOTÕES DE ORDENAÇÃO DE LIVROS */
         .btn-mode-vt { background-color: #795548; flex: 1; min-width: 120px; }
@@ -90,7 +91,16 @@
         .verse-text { font-size: 1.2rem; line-height: 1.4; display: block; margin-bottom: 10px; color: #fff; }
         .verse-ref { color: #888; font-style: italic; font-size: 0.8rem; display: block;}
         
+        /* ESTILO PARA LEITURA DE RESUMO */
         .summary-text { font-size: 1.1rem; line-height: 1.5; color: #fff; text-align: justify; padding: 10px; background: #252525; border-radius: 8px; margin-bottom: 10px; }
+        .read-summary-content {
+            font-size: 1.15rem;
+            line-height: 1.6;
+            color: #e0e0e0;
+            text-align: justify;
+            padding: 15px;
+            white-space: pre-wrap; /* Preserva parágrafos */
+        }
 
         .feedback-msg { text-align: center; font-weight: bold; font-size: 1rem; min-height: 25px; margin: 5px 0; padding: 5px; flex-shrink: 0; }
         
@@ -226,7 +236,7 @@
 <div class="container">
     <div id="main-header">
         <h1 id="main-title">Flashcards Bíblicos</h1>
-        <div class="version-tag" id="version-tag">v4.0 (Ordenar Livros)</div>
+        <div class="version-tag" id="version-tag">v4.1 (Ler Resumos)</div>
     </div>
 
     <!-- SELEÇÃO DE LIVROS -->
@@ -261,6 +271,7 @@
             <button class="modal-btn btn-mode-order" onclick="selectMode('ordering')">🔃 Ordenar Subtítulos</button>
             <button class="modal-btn btn-mode-verse" onclick="selectMode('verse_ordering')">🔢 Ordenar Versículos</button>
             <button class="modal-btn btn-mode-checklist" onclick="selectMode('subtitle_checklist')">✅ Lista de Memorização</button>
+            <button class="modal-btn btn-mode-read" onclick="selectMode('read_summary')">📜 Ler Resumo</button>
             <button class="modal-btn btn-close" onclick="closeModal()">Cancelar</button>
         </div>
     </div>
@@ -338,7 +349,7 @@
         </div>
     </div>
 
-    <!-- JOGO: RESUMOS -->
+    <!-- JOGO: RESUMOS (ADIVINHAÇÃO) -->
     <div id="game-summary" class="hidden game-layout">
         <div class="game-header">
             <div class="stats-bar">
@@ -354,6 +365,21 @@
         </div>
         <div class="action-buttons-container">
             <button class="btn-action" onclick="resetGame()">Sair</button>
+        </div>
+    </div>
+
+    <!-- NOVO: LEITURA DE RESUMO -->
+    <div id="view-summary" class="hidden game-layout">
+        <div class="game-header">
+            <div class="stats-bar" style="justify-content: center;">
+                <span>📜 Resumo: <span class="lbl-book-name">...</span></span>
+            </div>
+        </div>
+        <div class="options-container-scroll">
+            <div id="read-summary-content" class="read-summary-content">...</div>
+        </div>
+        <div class="action-buttons-container">
+            <button class="btn-action" onclick="resetGame()">Voltar</button>
         </div>
     </div>
 
@@ -374,7 +400,7 @@
         </div>
     </div>
 
-    <!-- NOVO: JOGO DE ORDENAÇÃO DE LIVROS -->
+    <!-- JOGO: ORDENAÇÃO DE LIVROS -->
     <div id="game-book-ordering" class="hidden game-layout">
         <div class="stats-bar">
             <span>📚 Ordenar Livros</span>
@@ -469,9 +495,12 @@
         setup.classList.add('hidden');
 
         try {
-            if (mode === 'summary_game') {
+            if (mode === 'summary_game' || mode === 'read_summary') {
                 if (dbSummaries.length === 0) dbSummaries = await fetchJson(ARQUIVO_RESUMOS);
-                startSummaryGame();
+                
+                if (mode === 'summary_game') startSummaryGame();
+                else showBookSummary();
+                
             } else if (mode.startsWith('order_books_')) {
                 startBookOrdering(mode);
             } else {
@@ -807,7 +836,7 @@
     }
 
     // ==========================================
-    // MODO: RESUMOS
+    // MODO: RESUMOS (ADIVINHAÇÃO)
     // ==========================================
     function startSummaryGame() {
         summaryQueue = [...dbSummaries];
@@ -877,6 +906,20 @@
     }
 
     // ==========================================
+    // MODO: LER RESUMO (NOVO)
+    // ==========================================
+    function showBookSummary() {
+        // Normaliza para garantir que encontre mesmo com diferenças de acento
+        const summaryObj = dbSummaries.find(s => normalize(s.book) === normalize(selectedBookName));
+        
+        const text = summaryObj ? summaryObj.summary : "Resumo não disponível para este livro.";
+        
+        document.querySelectorAll('.lbl-book-name').forEach(el => el.innerText = selectedBookName);
+        document.getElementById('read-summary-content').innerText = text;
+        document.getElementById('view-summary').classList.remove('hidden');
+    }
+
+    // ==========================================
     // MODO: CHECKLIST DE MEMORIZAÇÃO
     // ==========================================
     function startSubtitleChecklist() {
@@ -938,24 +981,23 @@
     }
 
     // ==========================================
-    // MODO: ORDENAÇÃO DE LIVROS (NOVO)
+    // MODO: ORDENAÇÃO DE LIVROS
     // ==========================================
     function startBookOrdering(mode) {
         let booksToOrder = [];
         let scopeTitle = "";
 
         if (mode === 'order_books_vt') {
-            booksToOrder = bibleBooks.slice(0, 39); // Gênesis a Malaquias
+            booksToOrder = bibleBooks.slice(0, 39); 
             scopeTitle = "Antigo Testamento";
         } else if (mode === 'order_books_nt') {
-            booksToOrder = bibleBooks.slice(39); // Mateus a Apocalipse
+            booksToOrder = bibleBooks.slice(39); 
             scopeTitle = "Novo Testamento";
         } else {
-            booksToOrder = [...bibleBooks]; // Todos
+            booksToOrder = [...bibleBooks]; 
             scopeTitle = "Bíblia Completa";
         }
 
-        // Adiciona índice real para verificação
         bookOrderingOriginal = booksToOrder.map((b, i) => ({ ...b, realIndex: i }));
         
         let shuffled = [...bookOrderingOriginal];
