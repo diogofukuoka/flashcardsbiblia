@@ -7,7 +7,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos v3.9</title>
+    <title>Flashcards Bíblicos v4.0</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -67,11 +67,19 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .modal-content { background: #2c2c2c; padding: 25px; border-radius: 12px; width: 100%; max-width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
         .modal-btn { display: block; width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; font-size: 0.95rem; cursor: pointer; font-weight: bold; color: white; }
+        
+        /* CORES DOS BOTÕES DE MODO */
         .btn-mode-flash { background-color: #3b78e7; }
         .btn-mode-order { background-color: #27ae60; }
         .btn-mode-verse { background-color: #9c27b0; }
         .btn-mode-summary { background-color: #e91e63; }
-        .btn-mode-checklist { background-color: #ff9800; color: #121212; } /* Nova cor Laranja */
+        .btn-mode-checklist { background-color: #ff9800; color: #121212; }
+        
+        /* CORES DOS BOTÕES DE ORDENAÇÃO DE LIVROS */
+        .btn-mode-vt { background-color: #795548; flex: 1; min-width: 120px; }
+        .btn-mode-nt { background-color: #607d8b; flex: 1; min-width: 120px; }
+        .btn-mode-all { background-color: #009688; width: 100%; margin-top: 5px; }
+
         .btn-close { background-color: #444; margin-top: 15px; }
 
         /* UI DO JOGO */
@@ -185,7 +193,7 @@
             width: 24px;
             height: 24px;
             margin-right: 15px;
-            accent-color: #ff9800; /* Cor laranja para destaque */
+            accent-color: #ff9800; 
             cursor: pointer;
             flex-shrink: 0;
         }
@@ -218,7 +226,7 @@
 <div class="container">
     <div id="main-header">
         <h1 id="main-title">Flashcards Bíblicos</h1>
-        <div class="version-tag" id="version-tag">v3.9 (Checklist)</div>
+        <div class="version-tag" id="version-tag">v4.0 (Ordenar Livros)</div>
     </div>
 
     <!-- SELEÇÃO DE LIVROS -->
@@ -231,8 +239,15 @@
             <div class="section-title">Novo Testamento</div>
             <div id="grid-nt" class="book-grid"></div>
             
+            <!-- Botões Especiais -->
             <div style="margin-top: 30px; border-top: 1px solid #333; padding-top: 20px;">
                 <button class="modal-btn btn-mode-summary" onclick="selectMode('summary_game')">📚 Adivinhar Livro pelo Resumo</button>
+                
+                <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:10px;">
+                    <button class="modal-btn btn-mode-vt" onclick="selectMode('order_books_vt')">📜 Ordenar VT</button>
+                    <button class="modal-btn btn-mode-nt" onclick="selectMode('order_books_nt')">✝️ Ordenar NT</button>
+                    <button class="modal-btn btn-mode-all" onclick="selectMode('order_books_all')">📖 Bíblia Completa</button>
+                </div>
             </div>
         </div>
     </div>
@@ -342,7 +357,7 @@
         </div>
     </div>
 
-    <!-- NOVO: CHECKLIST DE MEMORIZAÇÃO -->
+    <!-- JOGO: CHECKLIST DE MEMORIZAÇÃO -->
     <div id="game-checklist" class="hidden game-layout">
         <div class="game-header">
             <div class="stats-bar">
@@ -355,6 +370,24 @@
             <ul id="subtitle-checklist-ul" class="sortable-list"></ul>
         </div>
         <div class="action-buttons-container">
+            <button class="btn-action" onclick="resetGame()">Sair</button>
+        </div>
+    </div>
+
+    <!-- NOVO: JOGO DE ORDENAÇÃO DE LIVROS -->
+    <div id="game-book-ordering" class="hidden game-layout">
+        <div class="stats-bar">
+            <span>📚 Ordenar Livros</span>
+            <span id="book-order-scope">...</span>
+        </div>
+        <p style="text-align:center; color:#888; font-size:0.85rem; margin: 5px 0; flex-shrink:0;">Arraste para a ordem canônica:</p>
+        <div class="options-container-scroll">
+            <ul id="sortable-book-list" class="sortable-list"></ul>
+        </div>
+        <div id="book-order-feedback" class="feedback-msg"></div>
+        <div class="action-buttons-container">
+            <button class="btn-action" style="background:#27ae60; color:white; border:none;" onclick="checkBookOrder()">Verificar</button>
+            <button class="btn-action" onclick="showCorrectBookOrder()">Resposta</button>
             <button class="btn-action" onclick="resetGame()">Sair</button>
         </div>
     </div>
@@ -401,6 +434,9 @@
     
     let summaryQueue = [], currentSummary = null;
 
+    // Variáveis para ordenação de livros
+    let bookOrderingOriginal = [], sortableBookInstance = null;
+
     window.onload = function() { renderBookGrid(); }
 
     function renderBookGrid() {
@@ -436,6 +472,8 @@
             if (mode === 'summary_game') {
                 if (dbSummaries.length === 0) dbSummaries = await fetchJson(ARQUIVO_RESUMOS);
                 startSummaryGame();
+            } else if (mode.startsWith('order_books_')) {
+                startBookOrdering(mode);
             } else {
                 if (dbSubtitles.length === 0) dbSubtitles = await fetchExcel(ARQUIVO_SUBTITULOS);
                 if ((mode === 'flashcards' || mode === 'verse_ordering') && dbVerses.length === 0) {
@@ -839,7 +877,7 @@
     }
 
     // ==========================================
-    // MODO: CHECKLIST DE MEMORIZAÇÃO (NOVO)
+    // MODO: CHECKLIST DE MEMORIZAÇÃO
     // ==========================================
     function startSubtitleChecklist() {
         const data = getBookData();
@@ -856,7 +894,6 @@
         const listEl = document.getElementById('subtitle-checklist-ul');
         listEl.innerHTML = "";
         
-        // Recupera dados salvos do localStorage (chave única por livro)
         const storageKey = `bibleApp_checklist_${currentBookCode}`;
         const savedData = JSON.parse(localStorage.getItem(storageKey)) || [];
         
@@ -869,14 +906,12 @@
             const li = document.createElement('li');
             li.className = 'checklist-item';
             
-            // Checkbox
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'checklist-checkbox';
             checkbox.checked = isChecked;
             checkbox.onchange = () => toggleChecklist(index, checkbox.checked);
             
-            // Texto
             const label = document.createElement('span');
             label.className = 'checklist-label' + (isChecked ? ' checked' : '');
             label.innerHTML = `<strong>${sub.cap}:${sub.ver}</strong> - ${sub.text}`;
@@ -899,7 +934,78 @@
         }
         
         localStorage.setItem(storageKey, JSON.stringify(savedData));
-        renderChecklist(); // Re-renderiza para atualizar contadores e estilos
+        renderChecklist(); 
+    }
+
+    // ==========================================
+    // MODO: ORDENAÇÃO DE LIVROS (NOVO)
+    // ==========================================
+    function startBookOrdering(mode) {
+        let booksToOrder = [];
+        let scopeTitle = "";
+
+        if (mode === 'order_books_vt') {
+            booksToOrder = bibleBooks.slice(0, 39); // Gênesis a Malaquias
+            scopeTitle = "Antigo Testamento";
+        } else if (mode === 'order_books_nt') {
+            booksToOrder = bibleBooks.slice(39); // Mateus a Apocalipse
+            scopeTitle = "Novo Testamento";
+        } else {
+            booksToOrder = [...bibleBooks]; // Todos
+            scopeTitle = "Bíblia Completa";
+        }
+
+        // Adiciona índice real para verificação
+        bookOrderingOriginal = booksToOrder.map((b, i) => ({ ...b, realIndex: i }));
+        
+        let shuffled = [...bookOrderingOriginal];
+        shuffleArray(shuffled);
+
+        const listEl = document.getElementById('sortable-book-list');
+        listEl.innerHTML = "";
+
+        shuffled.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'sortable-item';
+            li.setAttribute('data-real-index', item.realIndex); 
+            li.innerHTML = `<span class="item-text">${item.name}</span><span class="handle">☰</span>`;
+            listEl.appendChild(li);
+        });
+
+        document.getElementById('book-order-scope').innerText = scopeTitle;
+        document.getElementById('game-book-ordering').classList.remove('hidden');
+        document.getElementById('book-order-feedback').innerText = "";
+
+        if(sortableBookInstance) sortableBookInstance.destroy();
+        sortableBookInstance = new Sortable(listEl, { handle: '.handle', animation: 150, ghostClass: 'ghost-class' });
+    }
+
+    function checkBookOrder() {
+        const listItems = document.querySelectorAll('#sortable-book-list .sortable-item');
+        let allCorrect = true, errors = 0;
+        listItems.forEach((li, domIndex) => {
+            const correctIndex = parseInt(li.getAttribute('data-real-index'));
+            li.classList.remove('pos-correct', 'pos-wrong');
+            if (correctIndex === domIndex) li.classList.add('pos-correct');
+            else { li.classList.add('pos-wrong'); allCorrect = false; errors++; }
+        });
+        const fb = document.getElementById('book-order-feedback');
+        if (allCorrect) { fb.innerText = "Parabéns! Todos os livros estão na ordem correta."; fb.style.color = "#27ae60"; }
+        else { fb.innerText = `Você tem ${errors} livros fora de posição.`; fb.style.color = "#c0392b"; }
+    }
+
+    function showCorrectBookOrder() {
+        if(!confirm("Tem certeza?")) return;
+        const listEl = document.getElementById('sortable-book-list');
+        listEl.innerHTML = "";
+        bookOrderingOriginal.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'sortable-item pos-correct';
+            li.setAttribute('data-real-index', item.realIndex);
+            li.innerHTML = `<span class="item-text">${item.name}</span><span class="handle">☰</span>`;
+            listEl.appendChild(li);
+        });
+        document.getElementById('book-order-feedback').innerText = "Esta é a ordem correta.";
     }
 
     // ==========================================
