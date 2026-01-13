@@ -7,7 +7,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos v4.2</title>
+    <title>Flashcards Bíblicos v4.3</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -75,7 +75,7 @@
         .btn-mode-summary { background-color: #e91e63; }
         .btn-mode-checklist { background-color: #ff9800; color: #121212; }
         .btn-mode-read { background-color: #673ab7; }
-        .btn-mode-ref { background-color: #00bcd4; color: #121212; } /* Nova cor para Referência */
+        .btn-mode-ref { background-color: #00bcd4; color: #121212; }
         
         /* CORES DOS BOTÕES DE ORDENAÇÃO DE LIVROS */
         .btn-mode-vt { background-color: #795548; flex: 1; min-width: 120px; }
@@ -229,7 +229,7 @@
 <div class="container">
     <div id="main-header">
         <h1 id="main-title">Flashcards Bíblicos</h1>
-        <div class="version-tag" id="version-tag">v4.2 (Quiz Referência)</div>
+        <div class="version-tag" id="version-tag">v4.3 (Filtro Flashcards)</div>
     </div>
 
     <!-- SELEÇÃO DE LIVROS -->
@@ -270,6 +270,22 @@
         </div>
     </div>
 
+    <!-- CONFIGURAÇÃO DO FLASHCARD (SELEÇÃO DE SUBTÍTULOS) -->
+    <div id="flashcard-config-area" class="hidden" style="height:100%; display:flex; flex-direction:column;">
+        <div class="review-header">
+            <h2>Selecione os Tópicos</h2>
+            <div style="display:flex; gap:10px; justify-content:center; margin-bottom:5px;">
+                <button class="btn-action" onclick="toggleAllFlashcardConfig(true)">Marcar Todos</button>
+                <button class="btn-action" onclick="toggleAllFlashcardConfig(false)">Desmarcar</button>
+            </div>
+        </div>
+        <ul id="flashcard-config-list" class="review-list"></ul>
+        <div class="action-buttons-container">
+            <button class="btn-action" style="background:#3b78e7; color:white; border:none;" onclick="startFlashcardsGameWithSelection()">Iniciar Jogo</button>
+            <button class="btn-action" onclick="resetGame()">Voltar</button>
+        </div>
+    </div>
+
     <!-- SELEÇÃO DE SUBTÍTULO (Para ordenar versículos) -->
     <div id="subtitle-select-area" class="hidden" style="height:100%; display:flex; flex-direction:column;">
         <div class="review-header">
@@ -302,7 +318,7 @@
         </div>
     </div>
 
-    <!-- NOVO: JOGO DE REFERÊNCIA (Texto -> Referência) -->
+    <!-- JOGO: REFERÊNCIA (Texto -> Referência) -->
     <div id="game-reference" class="hidden game-layout">
         <div class="game-header">
             <div class="stats-bar">
@@ -524,7 +540,7 @@
                     dbVerses = await fetchExcel(ARQUIVO_BIBLIA);
                 }
 
-                if (mode === 'flashcards') startFlashcardsGame();
+                if (mode === 'flashcards') prepareFlashcardsConfig(); // ALTERADO: Vai para config
                 else if (mode === 'reference_quiz') startReferenceQuiz();
                 else if (mode === 'ordering') startOrderingGame();
                 else if (mode === 'verse_ordering') renderSubtitleSelection();
@@ -590,7 +606,56 @@
     // ==========================================
     // MODO: FLASHCARDS (Texto -> Subtítulo)
     // ==========================================
-    function startFlashcardsGame() {
+    
+    // NOVO: Prepara a tela de seleção de subtítulos
+    function prepareFlashcardsConfig() {
+        const data = getBookData();
+        currentSubtitleList = data.sortedList;
+        
+        const listEl = document.getElementById('flashcard-config-list');
+        listEl.innerHTML = "";
+        
+        currentSubtitleList.forEach((sub, index) => {
+            const li = document.createElement('li');
+            li.className = 'checklist-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'checklist-checkbox flash-config-check';
+            checkbox.value = index;
+            checkbox.checked = true; // Padrão: todos marcados
+            
+            const label = document.createElement('span');
+            label.className = 'checklist-label';
+            label.innerHTML = `<strong>${sub.cap}:${sub.ver}</strong> - ${sub.text}`;
+            label.onclick = () => { checkbox.checked = !checkbox.checked; };
+
+            li.appendChild(checkbox);
+            li.appendChild(label);
+            listEl.appendChild(li);
+        });
+
+        document.getElementById('flashcard-config-area').classList.remove('hidden');
+    }
+
+    function toggleAllFlashcardConfig(check) {
+        document.querySelectorAll('.flash-config-check').forEach(cb => cb.checked = check);
+    }
+
+    function startFlashcardsGameWithSelection() {
+        const checkboxes = document.querySelectorAll('.flash-config-check:checked');
+        const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        
+        if (selectedIndices.length === 0) {
+            alert("Selecione pelo menos um subtítulo.");
+            return;
+        }
+        
+        document.getElementById('flashcard-config-area').classList.add('hidden');
+        startFlashcardsGame(selectedIndices);
+    }
+
+    function startFlashcardsGame(selectedIndices) {
         const data = getBookData();
         currentSubtitleList = data.sortedList;
         const bookVerses = dbVerses.filter(r => r['book_number'] == data.code);
@@ -602,15 +667,28 @@
         bookVerses.forEach(v => {
             const vCap = parseInt(v['chapter']), vVer = parseInt(v['verse']);
             let correctSub = null;
+            let correctSubIndex = -1;
+
+            // Mapeia o versículo para o subtítulo correto
             for (let i = 0; i < currentSubtitleList.length; i++) {
                 const sub = currentSubtitleList[i];
                 if (sub.cap > vCap || (sub.cap === vCap && sub.ver > vVer)) break;
                 correctSub = sub.text;
+                correctSubIndex = i;
             }
-            if (correctSub) gameQueue.push({ text: cleanText(v['text']), ref: `${vCap}:${vVer}`, answer: correctSub });
+
+            // Só adiciona se o subtítulo estiver na lista de selecionados
+            if (correctSub && selectedIndices.includes(correctSubIndex)) {
+                gameQueue.push({ text: cleanText(v['text']), ref: `${vCap}:${vVer}`, answer: correctSub });
+            }
         });
 
-        if (gameQueue.length === 0) throw new Error("Falha no mapeamento.");
+        if (gameQueue.length === 0) {
+            alert("Nenhum versículo encontrado para os tópicos selecionados.");
+            prepareFlashcardsConfig();
+            return;
+        }
+        
         shuffleArray(gameQueue);
         sessionStats = { correct: 0, wrong: 0, total: gameQueue.length };
 
