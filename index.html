@@ -7,7 +7,7 @@
     <meta http-equiv="Expires" content="0" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flashcards Bíblicos v4.4</title>
+    <title>Flashcards Bíblicos v4.5</title>
     
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
@@ -81,6 +81,9 @@
         .btn-mode-vt { background-color: #795548; flex: 1; min-width: 120px; }
         .btn-mode-nt { background-color: #607d8b; flex: 1; min-width: 120px; }
         .btn-mode-all { background-color: #009688; width: 100%; margin-top: 5px; }
+        
+        /* BOTÃO DE SINCRONIZAÇÃO */
+        .btn-mode-sync { background-color: #607d8b; border: 1px solid #fff; margin-top: 15px; }
 
         .btn-close { background-color: #444; margin-top: 15px; }
 
@@ -215,6 +218,27 @@
             color: #777;
         }
 
+        /* ESTILOS DO MODAL DE SINCRONIZAÇÃO */
+        .sync-textarea {
+            width: 100%;
+            height: 100px;
+            background: #1e1e1e;
+            color: #00bcd4;
+            border: 1px solid #444;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            resize: none;
+            margin-bottom: 10px;
+        }
+        .sync-instructions {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
         @media (min-width: 768px) {
             .book-grid { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); }
             .book-btn { font-size: 16px; }
@@ -229,7 +253,7 @@
 <div class="container">
     <div id="main-header">
         <h1 id="main-title">Flashcards Bíblicos</h1>
-        <div class="version-tag" id="version-tag">v4.4 (Filtro Corrigido)</div>
+        <div class="version-tag" id="version-tag">v4.5 (Sincronização)</div>
     </div>
 
     <!-- SELEÇÃO DE LIVROS -->
@@ -251,6 +275,9 @@
                     <button class="modal-btn btn-mode-nt" onclick="selectMode('order_books_nt')">✝️ Ordenar NT</button>
                     <button class="modal-btn btn-mode-all" onclick="selectMode('order_books_all')">📖 Bíblia Completa</button>
                 </div>
+
+                <!-- Botão de Sincronização -->
+                <button class="modal-btn btn-mode-sync" onclick="openSyncModal()">☁️ Sincronizar / Salvar Progresso</button>
             </div>
         </div>
     </div>
@@ -267,6 +294,29 @@
             <button class="modal-btn btn-mode-checklist" onclick="selectMode('subtitle_checklist')">✅ Lista de Memorização</button>
             <button class="modal-btn btn-mode-read" onclick="selectMode('read_summary')">📜 Ler Resumo</button>
             <button class="modal-btn btn-close" onclick="closeModal()">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE SINCRONIZAÇÃO -->
+    <div id="sync-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 400px;">
+            <h2 style="margin-top:0; color:#fff;">Sincronização</h2>
+            
+            <div class="sync-instructions">
+                <strong>1. Exportar:</strong> Copie o código abaixo para salvar seu progresso ou transferir para outro dispositivo.
+            </div>
+            <textarea id="sync-export-area" class="sync-textarea" readonly onclick="this.select()"></textarea>
+            <button class="modal-btn btn-mode-flash" onclick="copySyncCode()">Copiar Código</button>
+            
+            <hr style="border-color:#444; margin: 15px 0;">
+            
+            <div class="sync-instructions">
+                <strong>2. Importar:</strong> Cole o código de outro dispositivo aqui para carregar o progresso.
+            </div>
+            <textarea id="sync-import-area" class="sync-textarea" placeholder="Cole o código aqui..."></textarea>
+            <button class="modal-btn btn-mode-order" onclick="loadSyncCode()">Carregar Progresso</button>
+
+            <button class="modal-btn btn-close" onclick="closeSyncModal()">Fechar</button>
         </div>
     </div>
 
@@ -666,7 +716,6 @@
         gameQueue = []; subtitlePerformance = {};
         currentSubtitleList.forEach(s => subtitlePerformance[s.text] = 'pending');
 
-        // CORREÇÃO: Armazena os textos dos subtítulos selecionados para usar como opções depois
         activeFlashcardSubtitles = currentSubtitleList
             .filter((_, index) => selectedIndices.includes(index))
             .map(s => s.text);
@@ -717,15 +766,12 @@
         const container = document.getElementById('options-container');
         container.innerHTML = ''; container.style.pointerEvents = 'auto';
 
-        // CORREÇÃO: Gera opções APENAS a partir dos subtítulos selecionados (activeFlashcardSubtitles)
         let pool = [...activeFlashcardSubtitles];
         let options = [];
 
-        // Se o pool for pequeno (ex: selecionou 2, 3 ou 4 tópicos), mostra todos eles
         if (pool.length <= 4) {
             options = pool;
         } else {
-            // Se selecionou muitos, pega a resposta certa + 3 erradas DENTRO dos selecionados
             options = [currentVerse.answer];
             let distractors = pool.filter(t => t !== currentVerse.answer);
             shuffleArray(distractors);
@@ -1256,6 +1302,58 @@
     }
 
     // ==========================================
+    // SINCRONIZAÇÃO (EXPORTAR/IMPORTAR)
+    // ==========================================
+    function openSyncModal() {
+        document.getElementById('sync-modal').classList.remove('hidden');
+        
+        // Gera o código de exportação
+        const allData = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('bibleApp_checklist_')) {
+                allData[key] = JSON.parse(localStorage.getItem(key));
+            }
+        }
+        
+        // Converte para Base64 para ficar um código único
+        const exportString = btoa(JSON.stringify(allData));
+        document.getElementById('sync-export-area').value = exportString;
+    }
+
+    function closeSyncModal() {
+        document.getElementById('sync-modal').classList.add('hidden');
+    }
+
+    function copySyncCode() {
+        const copyText = document.getElementById("sync-export-area");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); 
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            alert("Código copiado!");
+        });
+    }
+
+    function loadSyncCode() {
+        const code = document.getElementById('sync-import-area').value.trim();
+        if (!code) { alert("Cole um código válido."); return; }
+
+        try {
+            const decodedData = JSON.parse(atob(code));
+            
+            // Salva no localStorage
+            for (const key in decodedData) {
+                localStorage.setItem(key, JSON.stringify(decodedData[key]));
+            }
+            
+            alert("Progresso carregado com sucesso!");
+            closeSyncModal();
+        } catch (e) {
+            alert("Erro ao ler o código. Verifique se copiou corretamente.");
+        }
+    }
+
+    // ==========================================
     // UTILITÁRIOS
     // ==========================================
     function toggleReviewMode() {
@@ -1291,6 +1389,3 @@
 </script>
 </body>
 </html>
-
-
-
